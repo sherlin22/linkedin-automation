@@ -1,0 +1,6 @@
+{
+  "maxPerDay": 20,
+  "sendMode": "draft",
+  "minDelaySeconds": 5,
+  "maxDelaySeconds": 15
+}

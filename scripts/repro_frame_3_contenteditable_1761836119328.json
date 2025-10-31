@@ -1,0 +1,30 @@
+{
+  "contentEditables": [],
+  "candidates": [
+    {
+      "selector": ".msg-form__contenteditable",
+      "found": false
+    },
+    {
+      "selector": ".msg-form__contenteditable[role=\"textbox\"]",
+      "found": false
+    },
+    {
+      "selector": "textarea",
+      "found": false
+    },
+    {
+      "selector": "input",
+      "found": true,
+      "rect": {
+        "w": 0,
+        "h": 0
+      },
+      "className": ""
+    },
+    {
+      "selector": "div[role=\"textbox\"]",
+      "found": false
+    }
+  ]
+}

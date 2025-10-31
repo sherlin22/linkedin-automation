@@ -1,0 +1,19 @@
+[
+  {
+    "threadUrl": "https://www.linkedin.com/messaging/thread/2-ZjJjN2VjMDUtM2NiNy00YjY4LWIxZmMtNTVkNTU3NjlkZmZmXzEwMA==/",
+    "name": "there",
+    "timestamp": "2025-10-19T17:30:40.675Z",
+    "status": "sent",
+    "proposalPath": "/Users/rashmisherlin/Desktop/linkedin-automation/scripts/draft_message.png",
+    "followupScheduledAt": "2025-10-19T22:30:40.675Z",
+    "updatedAt": "2025-10-30T16:51:25.062Z",
+    "debugScreenshot": "/Users/rashmisherlin/Desktop/linkedin-automation/scripts/send_failed_0_1761792395661.png",
+    "debugBefore": "/Users/rashmisherlin/Desktop/linkedin-automation/scripts/send_before_0_1761843082903.png",
+    "sentAt": "2025-10-30T19:10:44.135Z",
+    "debugAfter": "/Users/rashmisherlin/Desktop/linkedin-automation/scripts/send_after_0_1761843085062.png",
+    "synced": true,
+    "sendAttemptLog": [
+      "has-text Send: clicked"
+    ]
+  }
+]
