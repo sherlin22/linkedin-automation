@@ -1,3 +1,62 @@
 .env
 .env
 logs/
+.env
+
+
+# Sensitive authentication files
+auth_state.json
+auth_storage.json
+google_token.json
+google_credentials.json
+google_credentials.json.json
+
+# State files with your data
+proposals_state.json
+proposals_state.json.bak
+state_followups.json
+resume_processing_state_ALL.json
+
+# Debug and temporary files
+*.png
+*.html
+dump_*.json
+dump_*.html
+frame_*.html
+cta_candidates_*.json
+*_debug.png
+*_debug.html
+repro_*.html
+repro_*.json
+
+# Backups
+backup_credentials/
+*.bak
+
+# System files
+.DS_Store
+~/
+
+# Node modules
+node_modules/
+
+# Build files
+dist/
+public/
+src/
+postcss.config.cjs
+tailwind.config.cjs
+vite.config.ts
+tsconfig.json
+
+# Profile and logs
+profile/
+logger.js
+index.html
+
+# Data files (your private data)
+data/*.json
+!data/.gitkeep
+
+# N8N workflows (optional)
+n8n/
