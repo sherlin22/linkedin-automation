@@ -1,0 +1,208 @@
+{
+  "name": "LinkedIn Resume Processing & Critique",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "webhook/proposal-submitted",
+        "responseMode": "onReceived"
+      },
+      "id": "proposal-webhook",
+      "name": "Proposal Submitted Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "conditions": [
+            {
+              "id": "timestamp",
+              "leftValue": "={{ new Date().toISOString() }}",
+              "rightValue": "={{ $json.submitted_at }}",
+              "operator": {
+                "type": "date",
+                "operation": "after",
+                "value": 5
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "followup-delay",
+      "name": "Wait 5 Hours",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "domain": "https://api.linkedin.com",
+        "path": "/v2/me",
+        "authentication": "oAuth2"
+      },
+      "id": "linkedin-api",
+      "name": "Check LinkedIn Messages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "folderId": "={{ $env.GOOGLE_DRIVE_FOLDER_ID }}",
+        "binaryData": true,
+        "path": "Resumes/{{ $('Date').format('YYYY-MM-DD') }}/{{ $json.recipient_name }}_{{ $now.format('YYYY-MM-DD') }}"
+      },
+      "id": "drive-upload",
+      "name": "Upload Resume to Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "options": {},
+        "messages": [
+          {
+            "role": "user",
+            "content": "give a powerful critic of the cv without the keyword summary. Wrap your complete response between RESUME_CRITIQUE_START and RESUME_CRITIQUE_END delimiters."
+          }
+        ],
+        "useBinaryData": true
+      },
+      "id": "openai-critique",
+      "name": "Generate Resume Critique",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "additionalFields": {
+          "to": "={{ $json.candidate_email }}",
+          "subject": "Proposal & Resume Review — Next Steps for {{ $json.recipient_name }}",
+          "body": "Dear {{ $json.recipient_name }},\n\nGreetings!!!\nPFA the proposal attached with the details needed to proceed further with the services.\n\nPls share a confirmation on the services you opt-in for:\nResume Writing – Rs {{ $json.resume_price }}/- INR – (As per the Experience, Customised Resume with a Result Oriented approach attracting opportunities)\nLinkedIn Optimisation – Rs {{ $json.linkedin_price }}/- INR – (Help you Position yourself and will make you stand out from the crowd)\n\nTo proceed, I've reviewed your resume and noticed areas for improvement that can significantly enhance its impact:\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nProfile Summary :  Areas of improvement\nResume Critique\n\nRESUME_CRITIQUE_START\n{{ $json.critique_text }}\nRESUME_CRITIQUE_END\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nNext Steps\nTo proceed, kindly: Confirm which services you would like to avail\n\nMake an 80% advance payment to the details below:\n    UPI: deepas2093@sbi\nFill out and return the attached LinkedIn Glossary Sheet\n\nExcited to support your leadership journey and help you unlock high-level opportunities across IT infrastructure, service delivery, and enterprise systems.\n\nLet's get started!\n\nTo Your Success,\nDeepa Rajan\n+91 9036846673",
+          "attachmentsUi": {
+            "attachmentValues": [
+              {
+                "name": "Linkedin Services_Glossary_2025.docx",
+                "binaryProperty": "glossaryFile"
+              }
+            ]
+          }
+        },
+        "options": {
+          "send": false
+        }
+      },
+      "id": "gmail-draft",
+      "name": "Create Gmail Draft",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "={{ $env.GOOGLE_SHEET_ID }}",
+        "sheetName": "Automation Logs",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "values": {
+            "timestamp": "={{ $now }}",
+            "linkedin_thread_id": "={{ $json.linkedin_thread_id }}",
+            "candidate_name": "={{ $json.recipient_name }}",
+            "candidate_email": "={{ $json.candidate_email }}",
+            "years_experience": "={{ $json.years_experience }}",
+            "resume_drive_link": "={{ $json.drive_link }}",
+            "critique_snippet": "={{ $json.critique_text ? $json.critique_text.substring(0, 200) : '' }}",
+            "pricing_selected": "Resume: {{ $json.resume_price }}, LinkedIn: {{ $json.linkedin_price }}",
+            "proposal_status": "submitted",
+            "followup_status": "scheduled",
+            "email_draft_id": "={{ $json.draft_id }}",
+            "debug_files": "={{ $json.debug_artifacts }}"
+          }
+        }
+      },
+      "id": "sheets-log",
+      "name": "Log to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "Proposal Submitted Webhook": {
+      "main": [
+        [
+          {
+            "node": "Wait 5 Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5 Hours": {
+      "main": [
+        [
+          {
+            "node": "Check LinkedIn Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check LinkedIn Messages": {
+      "main": [
+        [
+          {
+            "node": "Upload Resume to Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Resume to Drive": {
+      "main": [
+        [
+          {
+            "node": "Generate Resume Critique",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Resume Critique": {
+      "main": [
+        [
+          {
+            "node": "Create Gmail Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Gmail Draft": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

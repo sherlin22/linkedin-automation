@@ -1,0 +1,77 @@
+import React from "react";
+
+/**
+ * DebugPanel
+ * Fetches and displays JSON from /debug/latest_recent_messages.json
+ * and /debug/failed_proposals.json (served from public/debug).
+ */
+
+export function DebugPanel() {
+  const [latest, setLatest] = React.useState<any>(null);
+  const [failed, setFailed] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let mounted = true;
+
+    async function load() {
+      try {
+        setLoading(true);
+        const r1 = await fetch("/debug/latest_recent_messages.json", { cache: "no-store" });
+        if (r1.ok) {
+          const j1 = await r1.json();
+          if (mounted) setLatest(j1);
+        }
+      } catch (e) {
+        if (mounted) setLatest(null);
+      }
+
+      try {
+        const r2 = await fetch("/debug/failed_proposals.json", { cache: "no-store" });
+        if (r2.ok) {
+          const j2 = await r2.json();
+          if (mounted) setFailed(Array.isArray(j2) ? j2 : []);
+        }
+      } catch (e) {
+        if (mounted) setFailed([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    load();
+    const id = setInterval(load, 2500);
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, []);
+
+  return (
+    <div className="space-y-4">
+      <div className="p-4 border rounded bg-white/60">
+        <div className="flex items-center justify-between">
+          <h3 className="font-medium">Latest Recent Messages</h3>
+          <div className="text-xs text-muted-foreground">{loading ? "loading…" : "live"}</div>
+        </div>
+        <div className="text-xs mt-3 max-h-56 overflow-auto">
+          <pre className="whitespace-pre-wrap break-words">
+            {latest ? JSON.stringify(latest, null, 2) : "No data yet"}
+          </pre>
+        </div>
+      </div>
+
+      <div className="p-4 border rounded bg-white/60">
+        <div className="flex items-center justify-between">
+          <h3 className="font-medium">Failed Proposals (recent)</h3>
+          <div className="text-xs text-muted-foreground">{failed.length} items</div>
+        </div>
+        <div className="text-xs mt-3 max-h-56 overflow-auto">
+          <pre className="whitespace-pre-wrap break-words">
+            {failed.length ? JSON.stringify(failed.slice(0, 50), null, 2) : "No failures recorded"}
+          </pre>
+        </div>
+      </div>
+    </div>
+  );
+}

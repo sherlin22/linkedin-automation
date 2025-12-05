@@ -1,0 +1,40 @@
+[
+  {
+    "frameIndex": 0,
+    "frameUrl": "https://www.linkedin.com/feed/",
+    "selectorPreview": "<input class=\"basic-input search-global-typeahead__input search-global-typeahead__input--nile-background\n            search-global-typeahead__input--ellipsis\n            \n            \n          \n            \" placeholder=\"Search\" dir=\"auto\"",
+    "valuePreview": "",
+    "boundingBox": {
+      "x": 117,
+      "y": 9,
+      "width": 280,
+      "height": 34
+    }
+  },
+  {
+    "frameIndex": 0,
+    "frameUrl": "https://www.linkedin.com/feed/",
+    "selectorPreview": "<textarea id=\"g-recaptcha-response-100000\" name=\"g-recaptcha-response\" class=\"g-recaptcha-response\" style=\"width: 250px; height: 40px; border: 1px solid rgb(193, 193, 193); margin: 10px 25px; padding: 0px; resize: none; display: none;\"></te",
+    "valuePreview": "",
+    "boundingBox": null
+  },
+  {
+    "frameIndex": -1,
+    "frameUrl": "https://www.linkedin.com/feed/",
+    "selectorPreview": "<input class=\"basic-input search-global-typeahead__input search-global-typeahead__input--nile-background\n            search-global-typeahead__input--ellipsis\n            \n            \n          \n            \" placeholder=\"Search\" dir=\"auto\"",
+    "valuePreview": "",
+    "boundingBox": {
+      "x": 117,
+      "y": 9,
+      "width": 280,
+      "height": 34
+    }
+  },
+  {
+    "frameIndex": -1,
+    "frameUrl": "https://www.linkedin.com/feed/",
+    "selectorPreview": "<textarea id=\"g-recaptcha-response-100000\" name=\"g-recaptcha-response\" class=\"g-recaptcha-response\" style=\"width: 250px; height: 40px; border: 1px solid rgb(193, 193, 193); margin: 10px 25px; padding: 0px; resize: none; display: none;\"></te",
+    "valuePreview": "",
+    "boundingBox": null
+  }
+]
