@@ -1,0 +1,51 @@
+# verify_drive_folder.py
+import os
+from linkedin_automation import authenticate_google_services
+
+def verify_drive_folder():
+    print("🔍 Verifying Drive Folder...")
+    
+    # Authenticate
+    drive, sheets, gmail = authenticate_google_services()
+    
+    try:
+        # Load folder config
+        with open('drive_config.json', 'r') as f:
+            config = json.load(f)
+        
+        folder_id = config['resume_folder_id']
+        folder_name = config['resume_folder_name']
+        
+        print(f"📁 Checking folder: {folder_name}")
+        print(f"🆔 Folder ID: {folder_id}")
+        
+        # Verify folder exists in Drive
+        folder = drive.files().get(
+            fileId=folder_id,
+            fields='id,name,mimeType,createdTime,webViewLink'
+        ).execute()
+        
+        print(f"✅ Folder verified in Google Drive!")
+        print(f"📝 Name: {folder['name']}")
+        print(f"📂 Type: {folder['mimeType']}")
+        print(f"🕐 Created: {folder['createdTime']}")
+        print(f"🔗 Direct Link: {folder['webViewLink']}")
+        
+        # Count files in folder
+        files = drive.files().list(
+            q=f"'{folder_id}' in parents",
+            fields="files(id, name)",
+            pageSize=10
+        ).execute()
+        
+        file_count = len(files.get('files', []))
+        print(f"📊 Files in folder: {file_count}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Verification failed: {e}")
+        return False
+
+if __name__ == '__main__':
+    verify_drive_folder()

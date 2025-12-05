@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+node_modules/.bin*/
+node_modules/.package-lock*.json
+
+# Sensitive files
+auth_state.json
+auth_storage.json
+google_credentials.json
+google_credentials.json.json
+google_token.json
+backup_credentials/
+
+# Environment files
+.env
+.env.local
+
+# Build artifacts
+dist/
+build/
+.vite/
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+.vscode/
+
+# Browser profiles and debug files
+profile/
+frame_*.html
+dump_*.html
+dump_*.png
+debug_*.html
+debug_*.png
+*.png
+repro_*.html
+repro_*.json
+
+# State files (if they contain sensitive data)
+proposals_state.json
+proposals_state.json.bak
+state_followups.json
+resume_processing_state*.json
+
+# Test files
+test_*.js
+test_*.py
+test_*.pdf
+
+# Data files
+cta_candidates_*.json
+data/requests_log.json.bak
+
+# Backend specific (if needed)
+linkedin-automation-backend/auth_state.json
+linkedin-automation-backend/google_token.json
+linkedin-automation-backend/proposals_state.json

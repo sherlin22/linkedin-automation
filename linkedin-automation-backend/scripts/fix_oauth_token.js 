@@ -1,0 +1,162 @@
+// scripts/fix_oauth_token.js - Fix invalid_grant errors
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config();
+
+/**
+ * ISSUE: invalid_grant error means:
+ * 1. OAuth token is expired
+ * 2. Token was revoked
+ * 3. Refresh token is invalid
+ * 4. Too many refresh attempts
+ */
+
+async function diagnoseOAuthIssue() {
+  console.log('\n🔍 DIAGNOSING OAUTH ISSUE\n');
+  
+  // Check 1: Token file exists
+  if (!fs.existsSync('google_token.json')) {
+    console.log('❌ google_token.json NOT FOUND');
+    console.log('   Run: node scripts/setup_oauth.js\n');
+    return false;
+  }
+  
+  try {
+    const token = JSON.parse(fs.readFileSync('google_token.json', 'utf8'));
+    
+    console.log('✅ Token file found');
+    console.log(`   Access Token: ${token.access_token ? token.access_token.substring(0, 30) + '...' : 'MISSING'}`);
+    console.log(`   Refresh Token: ${token.refresh_token ? token.refresh_token.substring(0, 30) + '...' : 'MISSING'}`);
+    
+    if (token.expiry_date) {
+      const expiryDate = new Date(token.expiry_date);
+      const now = new Date();
+      const isExpired = now > expiryDate;
+      console.log(`   Expires: ${expiryDate.toLocaleString()}`);
+      console.log(`   Status: ${isExpired ? '❌ EXPIRED' : '✅ Valid'}`);
+    }
+    
+    // Check 2: Environment variables
+    console.log('\n✅ Checking environment variables:');
+    console.log(`   GOOGLE_CLIENT_ID: ${process.env.GOOGLE_CLIENT_ID ? '✅' : '❌'}`);
+    console.log(`   GOOGLE_CLIENT_SECRET: ${process.env.GOOGLE_CLIENT_SECRET ? '✅' : '❌'}`);
+    console.log(`   GOOGLE_REDIRECT_URI: ${process.env.GOOGLE_REDIRECT_URI ? '✅' : '❌'}`);
+    console.log(`   OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? '✅' : '❌'}`);
+    
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      console.log('\n⚠️  Missing credentials in .env file');
+      console.log('   Fix: Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env\n');
+      return false;
+    }
+    
+    return true;
+    
+  } catch (error) {
+    console.log(`❌ Error reading token: ${error.message}\n`);
+    return false;
+  }
+}
+
+async function fixOAuthToken() {
+  console.log('\n🔧 FIXING OAUTH TOKEN\n');
+  
+  const isValid = await diagnoseOAuthIssue();
+  
+  if (!isValid) {
+    console.log('\n❌ SOLUTION: Re-authenticate with Google');
+    console.log('   Run: node scripts/setup_oauth.js --reset\n');
+    return false;
+  }
+  
+  // Backup old token
+  const backupPath = 'google_token.json.backup';
+  try {
+    if (fs.existsSync('google_token.json')) {
+      fs.copyFileSync('google_token.json', backupPath);
+      console.log(`✅ Backed up token to: ${backupPath}\n`);
+    }
+  } catch (e) {
+    console.log(`⚠️  Could not backup token: ${e.message}\n`);
+  }
+  
+  console.log('OPTIONS TO FIX invalid_grant ERROR:\n');
+  console.log('1️⃣  Re-authenticate (RECOMMENDED):');
+  console.log('   node scripts/setup_oauth.js\n');
+  
+  console.log('2️⃣  If you have a valid token from another system:');
+  console.log('   Replace google_token.json with the valid token\n');
+  
+  console.log('3️⃣  If it keeps failing:');
+  console.log('   a) Check that OAuth app credentials are correct in .env');
+  console.log('   b) Go to: https://myaccount.google.com/permissions');
+  console.log('   c) Revoke "LinkedIn Automation" app access');
+  console.log('   d) Run: node scripts/setup_oauth.js\n');
+  
+  return false;
+}
+
+async function testOAuthConnection() {
+  console.log('\n🧪 TESTING OAUTH CONNECTION\n');
+  
+  try {
+    const { google } = require('googleapis');
+    
+    if (!fs.existsSync('google_token.json')) {
+      console.log('❌ Token file not found');
+      return false;
+    }
+    
+    const tokenData = JSON.parse(fs.readFileSync('google_token.json', 'utf8'));
+    
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/oauth2callback'
+    );
+    
+    oauth2Client.setCredentials(tokenData);
+    
+    // Try to make an API call
+    const drive = google.drive({ version: 'v3', auth: oauth2Client });
+    
+    console.log('📡 Testing Drive API connection...');
+    const response = await drive.files.list({
+      pageSize: 1,
+      fields: 'files(id, name)'
+    });
+    
+    console.log('✅ OAuth connection SUCCESS!');
+    console.log(`   Files accessible: ${response.data.files ? response.data.files.length : 0}`);
+    return true;
+    
+  } catch (error) {
+    console.log(`❌ OAuth connection FAILED: ${error.message}`);
+    
+    if (error.message.includes('invalid_grant')) {
+      console.log('\n💡 This is an invalid_grant error. Token is likely expired or revoked.');
+      console.log('   Solution: Re-run authentication');
+    }
+    
+    return false;
+  }
+}
+
+async function main() {
+  console.log('═'.repeat(60));
+  console.log('🔐 OAUTH INVALID_GRANT ERROR FIX');
+  console.log('═'.repeat(60));
+  
+  const testResult = await testOAuthConnection();
+  
+  if (!testResult) {
+    await fixOAuthToken();
+  } else {
+    console.log('\n✅ OAuth is working correctly!');
+    console.log('   You can now run: node scripts/step9_complete_resume_workflow.js --confirm=true\n');
+  }
+}
+
+main().catch(error => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});

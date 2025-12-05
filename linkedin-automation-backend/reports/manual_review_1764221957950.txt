@@ -1,0 +1,45 @@
+MANUAL RESUME REVIEW REPORT
+Generated: 2025-11-27T05:39:17.950Z
+=========================================
+
+UNREADABLE RESUMES (1 files):
+-----------------------------------------
+1. Sohail Shaikh
+   File: resume_Sohail_Shaikh_1764221894047.pdf
+   Path: /Users/rashmisherlin/Desktop/linkedin-automation/linkedin-automation-backend/downloads/resumes/unreadable/resume_Sohail_Shaikh_1764221894047.pdf
+   Date: 2025-11-27T05:38:15.186Z
+   Size: 1224 KB
+
+
+READABLE RESUMES (5 files):
+-----------------------------------------
+1. Zeeshan Quazi
+   File: resume_Zeeshan_Quazi_1764170686065.pdf
+   Path: /Users/rashmisherlin/Desktop/linkedin-automation/linkedin-automation-backend/downloads/resumes/readable/resume_Zeeshan_Quazi_1764170686065.pdf
+   Date: 2025-11-26T15:24:46.431Z
+   Size: 138 KB
+
+2. Nahid Bint Fadel
+   File: resume_Nahid_Bint_Fadel_1764170727745.pdf
+   Path: /Users/rashmisherlin/Desktop/linkedin-automation/linkedin-automation-backend/downloads/resumes/readable/resume_Nahid_Bint_Fadel_1764170727745.pdf
+   Date: 2025-11-26T15:25:28.120Z
+   Size: 241 KB
+
+3. HARSHIL HEMANT PANCHAL, MBA
+   File: resume_HARSHIL_HEMANT_PANCHAL__MBA_1764170775215.pdf
+   Path: /Users/rashmisherlin/Desktop/linkedin-automation/linkedin-automation-backend/downloads/resumes/readable/resume_HARSHIL_HEMANT_PANCHAL__MBA_1764170775215.pdf
+   Date: 2025-11-26T15:26:15.418Z
+   Size: 122 KB
+
+4. Bahaa Aldwaikat
+   File: resume_Bahaa_Aldwaikat_1764170851394.pdf
+   Path: /Users/rashmisherlin/Desktop/linkedin-automation/linkedin-automation-backend/downloads/resumes/readable/resume_Bahaa_Aldwaikat_1764170851394.pdf
+   Date: 2025-11-26T15:27:32.080Z
+   Size: 102 KB
+
+5. Utkarsh Srivastav
+   File: resume_Utkarsh_Srivastav_1764221902889.pdf
+   Path: /Users/rashmisherlin/Desktop/linkedin-automation/linkedin-automation-backend/downloads/resumes/readable/resume_Utkarsh_Srivastav_1764221902889.pdf
+   Date: 2025-11-27T05:38:23.374Z
+   Size: 114 KB
+

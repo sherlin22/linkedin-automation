@@ -1,0 +1,25 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "check_linkedin_session.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "googleapis": "^165.0.0",
+    "node-poppler": "^9.0.1",
+    "open": "^10.2.0",
+    "openai": "^6.9.1",
+    "pdf-parse": "^1.1.4",
+    "pdf2json": "^4.0.0",
+    "pdfjs-dist": "^5.4.394",
+    "playwright": "^1.57.0"
+  }
+  
+}

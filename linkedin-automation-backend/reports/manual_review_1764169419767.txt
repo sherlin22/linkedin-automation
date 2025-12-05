@@ -1,0 +1,30 @@
+MANUAL RESUME REVIEW REPORT
+Generated: 2025-11-26T15:03:39.767Z
+=========================================
+
+UNREADABLE RESUMES (4 files):
+-----------------------------------------
+1. Zeeshan Quazi
+   File: resume_Zeeshan_Quazi_1764169258869.pdf
+   Path: /Users/rashmisherlin/Desktop/linkedin-automation/linkedin-automation-backend/downloads/resumes/unreadable/resume_Zeeshan_Quazi_1764169258869.pdf
+   Date: 2025-11-26T15:00:59.070Z
+   Size: 138 KB
+
+2. Nahid Bint Fadel
+   File: resume_Nahid_Bint_Fadel_1764169288505.pdf
+   Path: /Users/rashmisherlin/Desktop/linkedin-automation/linkedin-automation-backend/downloads/resumes/unreadable/resume_Nahid_Bint_Fadel_1764169288505.pdf
+   Date: 2025-11-26T15:01:28.739Z
+   Size: 241 KB
+
+3. HARSHIL HEMANT PANCHAL, MBA
+   File: resume_HARSHIL_HEMANT_PANCHAL__MBA_1764169325473.pdf
+   Path: /Users/rashmisherlin/Desktop/linkedin-automation/linkedin-automation-backend/downloads/resumes/unreadable/resume_HARSHIL_HEMANT_PANCHAL__MBA_1764169325473.pdf
+   Date: 2025-11-26T15:02:05.945Z
+   Size: 122 KB
+
+4. Bahaa Aldwaikat
+   File: resume_Bahaa_Aldwaikat_1764169390284.pdf
+   Path: /Users/rashmisherlin/Desktop/linkedin-automation/linkedin-automation-backend/downloads/resumes/unreadable/resume_Bahaa_Aldwaikat_1764169390284.pdf
+   Date: 2025-11-26T15:03:10.421Z
+   Size: 102 KB
+

@@ -1,0 +1,319 @@
+{
+  "timestamp": "2025-11-18T18:02:13.654Z",
+  "conversations": [
+    {
+      "index": 0,
+      "name": "Pawan Mishra",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view  scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 1
+      },
+      "issues": []
+    },
+    {
+      "index": 1,
+      "name": "Ajaz Ali",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view  scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 1
+      },
+      "issues": []
+    },
+    {
+      "index": 2,
+      "name": "bilal thakur",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view  scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 1
+      },
+      "issues": []
+    },
+    {
+      "index": 3,
+      "name": "Pallavi Ragam",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view  scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 1
+      },
+      "issues": []
+    },
+    {
+      "index": 4,
+      "name": "Dinesh Thakur",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view  scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 1
+      },
+      "issues": []
+    },
+    {
+      "index": 5,
+      "name": "Dhiraj Malhotra",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": true,
+      "attachmentDetails": [
+        "Text indicator found"
+      ],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view  scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 1
+      },
+      "issues": []
+    },
+    {
+      "index": 6,
+      "name": "Onalenna Gaborone",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": true,
+      "attachmentDetails": [
+        "Text indicator found"
+      ],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view  scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 1
+      },
+      "issues": []
+    },
+    {
+      "index": 7,
+      "name": "Suchithra AS",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": true,
+      "attachmentDetails": [
+        "Text indicator found"
+      ],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view  scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 1
+      },
+      "issues": []
+    },
+    {
+      "index": 8,
+      "name": "Deepak Kumar",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": true,
+      "attachmentDetails": [
+        "Text indicator found"
+      ],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view  scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 1
+      },
+      "issues": []
+    },
+    {
+      "index": 9,
+      "name": "ROMIT TAKLE",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view  scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 1
+      },
+      "issues": []
+    },
+    {
+      "index": 10,
+      "name": "Unknown",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view msg-conversation-card--occluded scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 0
+      },
+      "issues": []
+    },
+    {
+      "index": 11,
+      "name": "Unknown",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view msg-conversation-card--occluded scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 0
+      },
+      "issues": []
+    },
+    {
+      "index": 12,
+      "name": "Unknown",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view msg-conversation-card--occluded scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 0
+      },
+      "issues": []
+    },
+    {
+      "index": 13,
+      "name": "Unknown",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view msg-conversation-card--occluded scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 0
+      },
+      "issues": []
+    },
+    {
+      "index": 14,
+      "name": "Unknown",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view msg-conversation-card--occluded scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 0
+      },
+      "issues": []
+    },
+    {
+      "index": 15,
+      "name": "Unknown",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view msg-conversation-card--occluded scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 0
+      },
+      "issues": []
+    },
+    {
+      "index": 16,
+      "name": "Unknown",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view msg-conversation-card--occluded scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 0
+      },
+      "issues": []
+    },
+    {
+      "index": 17,
+      "name": "Unknown",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view msg-conversation-card--occluded scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 0
+      },
+      "issues": []
+    },
+    {
+      "index": 18,
+      "name": "Unknown",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view msg-conversation-card--occluded scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 0
+      },
+      "issues": []
+    },
+    {
+      "index": 19,
+      "name": "Unknown",
+      "hasUnread": false,
+      "lastMessage": null,
+      "timestamp": null,
+      "hasAttachments": false,
+      "attachmentDetails": [],
+      "selectors": {
+        "tagName": "LI",
+        "className": "ember-view msg-conversation-card--occluded scaffold-layout__list-item msg-conversation-listitem msg-conversations-container__convo-item msg-conversations-container__pillar ",
+        "childCount": 0
+      },
+      "issues": []
+    }
+  ],
+  "errors": [],
+  "screenshots": [
+    "debug_conversation_0.png",
+    "debug_conversation_1.png",
+    "debug_conversation_2.png"
+  ]
+}
