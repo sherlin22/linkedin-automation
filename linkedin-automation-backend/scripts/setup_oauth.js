@@ -1,16 +1,19 @@
-// scripts/setup_oauth.js - OAUTH SETUP FOR GOOGLE DRIVE
+// scripts/setup_oauth.js - OAUTH SETUP FOR GOOGLE DRIVE (FIXED SCOPES)
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
 const http = require('http');
 const url = require('url');
+const open = require('open');
 require('dotenv').config();
 
 const SCOPES = [
   'https://www.googleapis.com/auth/drive.file',
   'https://www.googleapis.com/auth/drive',
   'https://www.googleapis.com/auth/spreadsheets',
-  'https://www.googleapis.com/auth/gmail.send'
+  'https://www.googleapis.com/auth/gmail.send',
+  'https://www.googleapis.com/auth/gmail.compose',  
+  'https://www.googleapis.com/auth/gmail.modify'    
 ];
 
 /**
@@ -18,7 +21,7 @@ const SCOPES = [
  * This creates google_token.json with refresh token for persistent access
  */
 async function setupOAuth() {
-  console.log('\n🔑 GOOGLE OAUTH SETUP');
+  console.log('\n🔐 GOOGLE OAUTH SETUP');
   console.log('='.repeat(60));
   
   // Get credentials from .env
@@ -33,7 +36,7 @@ async function setupOAuth() {
     console.error('   GOOGLE_CLIENT_ID=your_client_id');
     console.error('   GOOGLE_CLIENT_SECRET=your_client_secret');
     console.error('   GOOGLE_REDIRECT_URI=http://localhost:3000/oauth2callback');
-    console.error('\n📝 How to get credentials:');
+    console.error('\n🔍 How to get credentials:');
     console.error('   1. Go to: https://console.cloud.google.com/');
     console.error('   2. Create OAuth 2.0 Credentials (Desktop app)');
     console.error('   3. Download as JSON and copy values to .env');
@@ -63,10 +66,12 @@ async function setupOAuth() {
   console.log(`   ${authUrl}\n`);
   
   // Open browser
-  const open = require('open');
-  await open(authUrl).catch(() => {
-    console.log('   ℹ️  Manual authorization required');
-  });
+  try {
+    await open(authUrl);
+  } catch (err) {
+    console.log('   ℹ️  Could not open browser automatically');
+    console.log('   ℹ️  Please copy the URL above and paste it in your browser');
+  }
   
   // Start local server to receive callback
   return new Promise((resolve, reject) => {
@@ -90,7 +95,7 @@ async function setupOAuth() {
       
       try {
         console.log('✓ Authorization code received');
-        console.log('📝 Exchanging code for tokens...');
+        console.log('🔄 Exchanging code for tokens...');
         
         // Exchange code for tokens
         const { tokens } = await oauth2Client.getToken(code);
@@ -110,6 +115,11 @@ async function setupOAuth() {
         if (tokens.refresh_token) {
           console.log(`   ✓ Refresh Token: ${tokens.refresh_token.substring(0, 30)}...`);
         }
+        
+        console.log('\n✅ Scopes granted:');
+        console.log('   ✓ Google Drive (read/write)');
+        console.log('   ✓ Google Sheets (read/write)');
+        console.log('   ✓ Gmail (send & compose)');
         
         res.end('✅ Authorization successful! You can close this window.');
         server.close();
@@ -203,7 +213,7 @@ async function testOAuthToken() {
     console.log('\nNext steps:');
     console.log('   1. Run Step 9: node scripts/step9_complete_resume_workflow.js --confirm=true');
     console.log('   2. Resumes will auto-upload to Google Drive');
-    console.log('   3. Check: LinkedIn_Automation/Resumes/Readable/ in Drive\n');
+    console.log('   3. Gmail drafts will be created with critiques and attachments\n');
     
   } catch (error) {
     console.error('❌ Setup failed:', error.message);

@@ -994,12 +994,14 @@ async function loadMoreCards(page) {
 
   const pages = context.pages();
   const page = pages.length ? pages[0] : await context.newPage();
-  page.setDefaultTimeout(30000);
+  page.setDefaultTimeout(60000);
 
   try {
     log('Opening provider requests page:', args.page);
-    await page.goto(args.page, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(2000);
+await page.goto(args.page, { 
+  waitUntil: 'domcontentloaded',
+  timeout: 90000  //90 seconds for the initial page load
+});
 
     if (/\/uas\/login|\/login|\/checkpoint/.test(page.url())) {
       log('Login redirect detected. Please sign in manually and re-run.');
