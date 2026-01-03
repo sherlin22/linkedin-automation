@@ -1,0 +1,32 @@
+{
+  "slots": {
+    "slot1": {
+      "time": "8am",
+      "proposals": 73,
+      "followups": 56,
+      "downloads": 7,
+      "drafts": 5
+    },
+    "slot2": {
+      "time": "2pm",
+      "proposals": 76,
+      "followups": 76,
+      "downloads": 9,
+      "drafts": 9
+    },
+    "slot3": {
+      "time": "6pm",
+      "proposals": 40,
+      "followups": 25,
+      "downloads": 1,
+      "drafts": 1
+    }
+  },
+  "lastUpdate": "2026-01-03T08:41:44.440Z",
+  "totals": {
+    "totalProposals": 78,
+    "totalFollowups": 69,
+    "totalDownloads": 5,
+    "totalDrafts": 3
+  }
+}

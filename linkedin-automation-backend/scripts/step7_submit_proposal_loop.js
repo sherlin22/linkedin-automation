@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const minimist = require('minimist');
 const playwright = require('playwright');
+const { updateMetric } = require('./helpers/metrics-handler');
+const { isValidCandidateName } = require('./helpers/validation-helpers'); 
 
 const args = minimist(process.argv.slice(2), {
   string: ['auth', 'state', 'page', 'browser', 'profile', 'slowMo'],
@@ -56,6 +58,38 @@ Cheers,
 Deepa Rajan
 Ph: 9036846673
 Write to: deeparajan890@gmail.com`;
+
+async function sendProposalWebhook(clientName, email, threadId) {
+  try {
+    console.log(`📡 Sending proposal webhook for: ${clientName}`);
+    
+    const payload = {
+      clientName: clientName || 'Unknown',
+      email: email || 'N/A',
+      threadId: threadId || `thread-${Date.now()}`,
+      status: 'success',
+      timestamp: new Date().toISOString()
+    };
+
+    const response = await fetch('http://localhost:3000/api/automation/proposal-submitted', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      console.log(`   ✅ Webhook sent for ${clientName}`);
+      return true;
+    } else {
+      console.log(`   ⚠️  Webhook failed: ${response.status}`);
+      return false;
+    }
+  } catch (error) {
+    console.log('⚠️  Webhook error:', error.message);
+    return false;
+  }
+}
+
 
 function log(...a){ console.log(...a); }
 
@@ -332,10 +366,13 @@ async function findDialogEditor(page, dialog) {
   return null;
 }
 
-// IMPROVED NAME DETECTION - ENHANCED VERSION WITH BETTER FILTERING
+// IMPROVED NAME DETECTION - USE YOUR VALIDATION HELPER
 async function detectNameFromDialog(page, dialog) {
   try {
     log('   🔍 Starting IMPROVED name detection...');
+
+    // Import your validation helper
+    const { isValidCandidateName } = require('./helpers/validation-helpers');
 
     // Enhanced blacklist of common LinkedIn UI texts that are NOT names
     const BLACKLIST_PATTERNS = [
@@ -358,77 +395,56 @@ async function detectNameFromDialog(page, dialog) {
       return BLACKLIST_PATTERNS.some(pattern => lowerText.includes(pattern));
     }
 
-    // Helper function to validate person name with stricter rules
-    function isValidPersonName(text) {
-      if (!text || text.length < 2 || text.length > 60) return false;
-      
-      // Check blacklist first
-      if (isBlacklisted(text)) return false;
-      
-      const words = text.split(' ').filter(w => w.length > 0);
-      
-      // Must be 2-3 words (First Last or First Middle Last)
-      if (words.length < 2 || words.length > 3) return false;
-      
-      // Each word must start with capital letter and contain only letters, hyphens, or apostrophes
-      const nameRegex = /^[A-Z][a-z'-]*$/;
-      const allValid = words.every(word => nameRegex.test(word));
-      
-      // No numbers or special characters except hyphen and apostrophe
-      const hasInvalidChars = /[0-9!@#$%^&*()_+=<>?/\\.,;:{}|[\]]/.test(text);
-      
-      // Must not be all uppercase (likely an acronym or UI text)
-      const isAllCaps = text === text.toUpperCase();
-      
-      return allValid && !hasInvalidChars && !isAllCaps;
-    }
-
-    // STRATEGY 1: Look for the timestamp pattern "FirstName LastName · Xh ago" or "FirstName LastName · Xd ago"
+    // STRATEGY 1: Look for the timestamp pattern "FirstName LastName · Xh ago"
     if (dialog) {
       const timestampName = await dialog.evaluate(() => {
         const elements = Array.from(document.querySelectorAll('*'));
         for (const el of elements) {
           const text = (el.innerText || el.textContent || '').trim();
           // Match pattern: "Name · Xh ago" or "Name · Xd ago" or "Name · now"
-          const match = text.match(/([A-Z][a-z]+(?: [A-Z][a-z]+){1,2}) · (\d+[hd] ago|now)/);
+          // More flexible to allow initials and all caps
+          const match = text.match(/([A-Z][A-Za-z]*(?:\s+[A-Z][A-Za-z'.-]*){1,2})\s*·\s*(\d+[hd]\s*ago|now)/);
           if (match && match[1]) {
             const name = match[1].trim();
-            const words = name.split(' ');
-            if (words.length >= 2 && words.length <= 3 && 
-                words.every(word => /^[A-Z][a-z'-]+$/.test(word))) {
-              return name;
-            }
+            return name;
           }
         }
         return null;
       });
 
-      if (timestampName && isValidPersonName(timestampName)) {
+      if (timestampName && !isBlacklisted(timestampName)) {
         log('   ✓ Name from timestamp pattern:', timestampName);
-        return timestampName;
+        // Validate with your helper
+        if (isValidCandidateName(timestampName)) {
+          return timestampName;
+        } else {
+          log('   ✗ Timestamp name failed validation:', timestampName);
+        }
       }
     }
 
     // STRATEGY 2: Look for profile link with data-test attributes
     if (dialog) {
       try {
-        // Try creator title link
         const creatorTitleLink = await dialog.$('a[data-test-service-requests-detail__creator-title-link]');
         if (creatorTitleLink) {
           const title = await creatorTitleLink.getAttribute('title');
-          if (title && isValidPersonName(title.trim())) {
+          if (title && !isBlacklisted(title.trim())) {
             log('   ✓ Name from creator-title-link:', title.trim());
-            return title.trim();
+            if (isValidCandidateName(title.trim())) {
+              return title.trim();
+            }
           }
         }
 
-        // Try profile image link
         const profileImageLink = await dialog.$('a[data-test-service-requests-detail__creator-profile-image-link]');
         if (profileImageLink) {
           const title = await profileImageLink.getAttribute('title');
-          if (title && isValidPersonName(title.trim())) {
+          if (title && !isBlacklisted(title.trim())) {
             log('   ✓ Name from profile-image-link:', title.trim());
-            return title.trim();
+            if (isValidCandidateName(title.trim())) {
+              return title.trim();
+            }
           }
         }
       } catch (e) {
@@ -436,80 +452,59 @@ async function detectNameFromDialog(page, dialog) {
       }
     }
 
-    // STRATEGY 3: Look for profile links with /in/ pattern (LinkedIn profile URLs)
+    // STRATEGY 3: Look for profile links with /in/ pattern
     if (dialog) {
       const profileLinkName = await dialog.evaluate(() => {
-        // Find all links that point to LinkedIn profiles
         const profileLinks = Array.from(document.querySelectorAll('a[href*="/in/"]'));
         
         for (const link of profileLinks) {
           const linkText = (link.innerText || link.textContent || '').trim();
           
-          // Check if link text looks like a name
-          if (linkText && linkText.length > 3 && linkText.length < 60) {
-            const words = linkText.split(' ').filter(w => w.length > 0);
-            
-            // Must be 2-3 words starting with capitals
-            if (words.length >= 2 && words.length <= 3) {
-              const allCapitalized = words.every(word => /^[A-Z][a-z'-]*$/.test(word));
-              if (allCapitalized) {
-                return linkText;
-              }
-            }
+          if (linkText && linkText.length > 2 && linkText.length < 60) {
+            return linkText;
           }
           
-          // Also check the title attribute
           const title = link.getAttribute('title');
-          if (title && title.length > 3 && title.length < 60) {
-            const words = title.split(' ').filter(w => w.length > 0);
-            if (words.length >= 2 && words.length <= 3) {
-              const allCapitalized = words.every(word => /^[A-Z][a-z'-]*$/.test(word));
-              if (allCapitalized) {
-                return title;
-              }
-            }
+          if (title && title.length > 2 && title.length < 60) {
+            return title;
           }
         }
         return null;
       });
 
-      if (profileLinkName && isValidPersonName(profileLinkName)) {
+      if (profileLinkName && !isBlacklisted(profileLinkName)) {
         log('   ✓ Name from profile link:', profileLinkName);
-        return profileLinkName;
+        if (isValidCandidateName(profileLinkName)) {
+          return profileLinkName;
+        }
       }
     }
 
-    // STRATEGY 4: Look for heading elements near the top of dialog (often contain requester name)
+    // STRATEGY 4: Look for heading elements (h2, h3, h4)
     if (dialog) {
       const headingName = await dialog.evaluate(() => {
-        // Look for h2, h3 elements which often contain the requester's name
         const headings = Array.from(document.querySelectorAll('h2, h3, h4'));
         
         for (const heading of headings) {
           const text = (heading.innerText || heading.textContent || '').trim();
           
-          // Must be reasonably short and look like a name
-          if (text && text.length > 3 && text.length < 60) {
-            const words = text.split(' ').filter(w => w.length > 0);
-            
-            if (words.length >= 2 && words.length <= 3) {
-              const allCapitalized = words.every(word => /^[A-Z][a-z'-]*$/.test(word));
-              if (allCapitalized) {
-                return text;
-              }
-            }
+          if (text && text.length > 2 && text.length < 60) {
+            return text;
           }
         }
         return null;
       });
 
-      if (headingName && isValidPersonName(headingName)) {
+      if (headingName && !isBlacklisted(headingName)) {
         log('   ✓ Name from heading:', headingName);
-        return headingName;
+        if (isValidCandidateName(headingName)) {
+          return headingName;
+        }
       }
     }
 
-    // STRATEGY 5: Scan all visible text with strict filtering
+    // STRATEGY 5: Scan all visible text with flexible matching
+    // ✅ IMPROVED: Support initials (JM), all caps (SURAJ), normal (John)
     if (dialog) {
       const allText = await dialog.evaluate(() => {
         const texts = [];
@@ -523,8 +518,7 @@ async function detectNameFromDialog(page, dialog) {
         let node;
         while (node = walker.nextNode()) {
           const text = node.textContent.trim();
-          if (text && text.length > 5 && text.length < 100) {
-            // Skip if parent is a button or hidden
+          if (text && text.length > 2 && text.length < 100) {
             const parent = node.parentElement;
             if (parent) {
               const style = window.getComputedStyle(parent);
@@ -542,16 +536,39 @@ async function detectNameFromDialog(page, dialog) {
         return texts;
       });
 
-      for (const text of allText) {
-        // Look for pattern: "FirstName LastName" (and optionally MiddleName)
-        const nameMatch = text.match(/\b([A-Z][a-z'-]+(?: [A-Z][a-z'-]+){1,2})\b/);
+      // Try multiple regex patterns to catch different name formats
+      const patterns = [
+        // Pattern 1: Normal names with capitals (John Smith, Mary Jane)
+        /\b([A-Z][a-z'-]+(?:\s+[A-Z][a-z'-]+){1,2})\b/,
         
-        if (nameMatch) {
-          const potentialName = nameMatch[1].trim();
+        // Pattern 2: All caps names (SURAJ SUNIL, LAXMI NARAYAN)
+        /\b([A-Z]+(?:\s+[A-Z]+){1,2})\b/,
+        
+        // Pattern 3: Mixed initials and names (JM Thennavan, O Brien)
+        /\b([A-Z]{1,2}(?:\s+[A-Z][a-z'-]+){1,2})\b/,
+      ];
+
+      for (const text of allText) {
+        for (const pattern of patterns) {
+          const nameMatch = text.match(pattern);
           
-          if (isValidPersonName(potentialName)) {
-            log('   ✓ Name from text pattern:', potentialName);
-            return potentialName;
+          if (nameMatch) {
+            const potentialName = nameMatch[1].trim();
+            
+            // Skip blacklisted items
+            if (isBlacklisted(potentialName)) {
+              continue;
+            }
+            
+            log('   Checking candidate:', potentialName);
+            
+            // Use your validation helper
+            if (isValidCandidateName(potentialName)) {
+              log('   ✓ Name from text pattern:', potentialName);
+              return potentialName;
+            } else {
+              log('   ✗ Candidate failed validation:', potentialName);
+            }
           }
         }
       }
@@ -1129,6 +1146,13 @@ await page.goto(args.page, {
       log('   🔍 NAME DETECTION DEBUG:');
       log('   Raw name detected:', name);
       log('   Clean name to save:', name && name !== 'there' ? name.trim() : 'INVALID_NAME');
+
+      if (!isValidCandidateName(name)) {
+        log(`   ⚠️  Invalid name detected: "${name}" - SKIPPING this card`);
+        await closeDialog(page);
+        await page.goto(args.page, { waitUntil: 'domcontentloaded' });
+        continue; // Skip this entire card, move to next one
+      }
       
       const personalized = MSG_TEMPLATE.replace('{name}', name || 'there');
       log('Detected name:', name || 'there');
@@ -1166,16 +1190,53 @@ await page.goto(args.page, {
       }).catch(() => '');
       
       log('Filled preview (trim):', (preview || '').slice(0,200).replace(/\n/g,'␤'));
-      
+
       if (args.confirm) {
         const submitted = await clickDialogSubmit(page, dialog);
         if (submitted) {
           log('✅ Proposal submitted (confirm=true).');
-          processedCount++;
 
-          try {
+          if (!isValidCandidateName(name)) {
+            log(`   ⚠️  Invalid name detected: "${name}" - SKIPPING this card`);
+            await closeDialog(page);
+            await page.goto(args.page, { waitUntil: 'domcontentloaded' });
+            continue;
+          }
+           processedCount++;
+           // 🔗 WEBHOOK: Log to Google Sheets
+           try {
+            await fetch('http://localhost:3000/api/automation/proposal-submitted', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                clientName: name,
+                threadId: clickedCardId || null
+              })
+            }).catch(err => console.warn('⚠️  Webhook failed:', err.message));
+          } catch (e) {
+            console.warn('⚠️  Could not send webhook');
+          }
+    
+           // Update metrics
+           const currentHour = new Date().getHours();
+          let slot = 'slot1';
+          if (currentHour >= 14 && currentHour < 18) {
+            slot = 'slot2';
+          } else if (currentHour >= 18) {
+            slot = 'slot3';
+          }
+    
+  
+          updateMetric(slot, 'proposals', 1);
+          log(`📊 Metrics: Updated ${slot} proposals count`);
+
+          // ✅ NEW: Send individual webhook with client details
+          await sendProposalWebhook(name, 'automation@linkedin.local', clickedCardId);
+
+          // Save state...
+          try {      
             const cid = clickedCardId || (await getCardId(clickedCardHandle).catch(()=>null));
-            
+      
             if (!PERSIST.processed) PERSIST.processed = [];
             if (cid && !PERSIST.processed.includes(cid)) {
               PERSIST.processed.push(cid);
@@ -1183,23 +1244,18 @@ await page.goto(args.page, {
               const fallbackId = 'fallback-' + Date.now();
               PERSIST.processed.push(fallbackId);
             }
-            
+      
             if (!PERSIST.submittedNames) PERSIST.submittedNames = [];
-            
+      
             if (name && name !== 'there' && name.trim().length > 0) {
               const cleanName = name.trim();
               if (!PERSIST.submittedNames.includes(cleanName)) {
                 PERSIST.submittedNames.push(cleanName);
                 log('   ✅ Added to submittedNames:', cleanName);
-              } else {
-                log('   ⏭️ Name already in submittedNames:', cleanName);
               }
-            } else {
-              log('   ⚠ No valid name to save for follow-up:', name);
             }
-            
+      
             savePersist();
-            log('   💾 Saved state - Processed:', PERSIST.processed.length, 'Submitted names:', PERSIST.submittedNames.length);
           } catch (e) {
             log('Warning: failed to persist state:', e && e.message);
           }
@@ -1209,8 +1265,6 @@ await page.goto(args.page, {
           log('⚠️ Could not find submit button. Left as draft.');
           await safeSaveDebug(page, 'no_submit_button');
         }
-      } else {
-        log('Dry-run: proposal drafted but not submitted (use --confirm=true to send).');
       }
       
       await safeSaveDebug(page, 'filled_proposal_success');
@@ -1222,8 +1276,10 @@ await page.goto(args.page, {
     }
 
     log(`✅ Loop finished. Processed ${processedCount} proposal(s).`);
-    if (!args.headful) await context.close();
-    process.exit(0);
+
+   if (!args.headful) await context.close();
+   console.log(`\n✅ Step 7 Complete - ${processedCount} proposals sent`);
+   process.exit(0);
 
   } catch (err) {
     console.error('ERROR main flow:', err && (err.stack || err));

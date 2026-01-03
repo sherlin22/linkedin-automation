@@ -1,8 +1,10 @@
-// scripts/step9_complete_resume_workflow.js - FINAL FIX FOR DOWNLOAD
+// scripts/step9_complete_resume_workflow.js - CORRECTED WITH WEBHOOKS
 const fs = require("fs");
 const path = require("path");
 const minimist = require("minimist");
 const playwright = require("playwright");
+const { updateMetric } = require('./helpers/metrics-handler');
+const { isValidCandidateName } = require('./helpers/validation-helpers');
 
 require('dotenv').config();
 
@@ -29,6 +31,70 @@ const { uploadToGoogleDrive } = require('./helpers/google_drive');
 const { createGmailDraft } = require('./helpers/gmail_draft');
 const { extractEmailFromResume, extractExperienceYears } = require('./helpers/resume-parser');
 const { generateResumeCritique } = require('./helpers/openai_critique');
+
+// ✅ WEBHOOK: Send resume download event
+async function sendResumeDownloadWebhook(clientName, resumeStatus, emailId, threadId) {
+  try {
+    console.log(`📡 Sending resume download webhook for: ${clientName}`);
+    
+    const payload = {
+      clientName: clientName || 'Unknown',
+      resumeStatus: resumeStatus || 'Failed',  // "Success/Readable" or "Success/Unreadable"
+      emailId: emailId || 'N/A',
+      threadId: threadId || null,
+      status: 'success',
+      timestamp: new Date().toISOString()
+    };
+
+    const response = await fetch('http://localhost:3000/api/automation/resume-downloaded', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      console.log(`   ✅ Webhook sent for ${clientName}`);
+      return true;
+    } else {
+      console.log(`   ⚠️  Webhook failed: ${response.status}`);
+      return false;
+    }
+  } catch (error) {
+    console.log('⚠️  Webhook error:', error.message);
+    return false;
+  }
+}
+
+// ✅ WEBHOOK: Send draft created event
+async function sendDraftCreatedWebhook(clientName, draftStatus) {
+  try {
+    console.log(`📡 Sending draft webhook for: ${clientName}`);
+    
+    const payload = {
+      clientName: clientName || 'Unknown',
+      draftStatus: draftStatus || 'Success',
+      status: 'success',
+      timestamp: new Date().toISOString()
+    };
+
+    const response = await fetch('http://localhost:3000/api/automation/draft-created', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      console.log(`   ✅ Draft webhook sent for ${clientName}`);
+      return true;
+    } else {
+      console.log(`   ⚠️  Draft webhook failed: ${response.status}`);
+      return false;
+    }
+  } catch (error) {
+    console.log('⚠️  Draft webhook error:', error.message);
+    return false;
+  }
+}
 
 let RESUME_STATE = { 
   processed: [], 
@@ -163,7 +229,6 @@ async function getConversationName(el) {
   } catch { return null; }
 }
 
-// FIXED: Much better attachment detection - filters out false positives
 async function findLinkedInAttachments(page) {
   log('   🔍 Searching for attachments...');
   
@@ -171,24 +236,17 @@ async function findLinkedInAttachments(page) {
   
   const attachments = await page.evaluate(() => {
     const results = [];
-    
-    // Look for actual file download elements with file size indicators
     const allElements = document.querySelectorAll('*');
     
     allElements.forEach(el => {
       const text = (el.innerText || el.textContent || '').trim();
       
-      // CRITICAL: Only match text that contains BOTH filename AND file size
-      // This filters out "Resume Writing" service name
       const hasFilePattern = /\.(pdf|doc|docx)/i.test(text);
       const hasSizePattern = /\d+\s*(KB|MB|bytes)/i.test(text);
       const hasDownloadText = /download/i.test(text);
       
-      // Must have filename AND (size OR download button)
       if (hasFilePattern && (hasSizePattern || hasDownloadText)) {
-        // Additional filter: text should be short (actual file info is concise)
         if (text.length < 300) {
-          // Check if there's a download button nearby
           const hasButton = el.querySelector('button, a[download]') !== null;
           
           if (hasButton || hasDownloadText) {
@@ -216,7 +274,6 @@ async function findLinkedInAttachments(page) {
   return attachments;
 }
 
-// FIXED: Download without :has-text() pseudo-selector
 async function downloadLinkedInFile(page, name, attachmentInfo) {
   try {
     const dir = path.join(process.cwd(), 'downloads', 'resumes');
@@ -227,7 +284,6 @@ async function downloadLinkedInFile(page, name, attachmentInfo) {
     
     const downloadPromise = page.waitForEvent('download', { timeout: 30000 });
     
-    // FIXED: Use only valid CSS selectors
     const clicked = await page.evaluate(() => {
       const selectors = [
         'button[aria-label*="Download"]',
@@ -250,7 +306,6 @@ async function downloadLinkedInFile(page, name, attachmentInfo) {
         }
       }
       
-      // Fallback: Find any button near text containing ".pdf" and KB/MB
       const allButtons = document.querySelectorAll('button');
       for (const btn of allButtons) {
         const parent = btn.closest('[class*="msg-s-event"]');
@@ -326,7 +381,7 @@ async function downloadLinkedInFile(page, name, attachmentInfo) {
   }
 }
 
-// MAIN WORKFLOW (unchanged - works well)
+// MAIN WORKFLOW
 async function processResumeWorkflow(page, fileInfo, clientName, threadId) {
   const result = {
     clientName,
@@ -523,9 +578,8 @@ async function processResumeWorkflow(page, fileInfo, clientName, threadId) {
       process.exit(1);
     }
 
-    // ✅ ADD THIS SCROLLING SECTION
     log('📜 Loading more conversations by scrolling...');
-   const conversationList = await page.$('.msg-conversations-container__conversations-list, [class*="conversations-list"]');
+    const conversationList = await page.$('.msg-conversations-container__conversations-list, [class*="conversations-list"]');
     if (conversationList) {
       console.log('📜 Loading more conversations by scrolling...');
       let previousCount = 0;
@@ -535,15 +589,13 @@ async function processResumeWorkflow(page, fileInfo, clientName, threadId) {
         await conversationList.evaluate(el => {
           el.scrollTop = el.scrollHeight;
         });
-        await page.waitForTimeout(2000); // Wait for lazy loading
+        await page.waitForTimeout(2000);
         
-        // Check if new conversations loaded
         const currentThreads = await page.$$('li.msg-conversation-listitem');
         const currentCount = currentThreads.length;
         
         console.log(`   Scroll ${i + 1}/15 completed - Found ${currentCount} conversations`);
         
-        // If count hasn't changed in 3 scrolls, we've reached the end
         if (currentCount === previousCount) {
           stableCount++;
           if (stableCount >= 3) {
@@ -577,6 +629,12 @@ async function processResumeWorkflow(page, fileInfo, clientName, threadId) {
 
       const name = await getConversationName(thread);
       if (!name) {
+        processed++;
+        continue;
+      }
+
+      if (!isValidCandidateName(name)) {
+        log(`   ⚠️  Invalid name: "${name}" - skipping conversation`);
         processed++;
         continue;
       }
@@ -619,14 +677,49 @@ async function processResumeWorkflow(page, fileInfo, clientName, threadId) {
           
           if (downloadedFile) {
             successDownloads++;
+            
+            const currentHour = new Date().getHours();
+            let slot = 'slot1';
+            if (currentHour >= 14 && currentHour < 18) {
+              slot = 'slot2';
+            } else if (currentHour >= 18) {
+              slot = 'slot3';
+            }
+            
+            updateMetric(slot, 'downloads', 1);
+            log(`📊 Metrics: Updated ${slot} downloads count`);
+
             const threadId = await thread.evaluate(e => e.getAttribute('data-urn') || e.id || `t${Date.now()}`);
             
             const workflowResult = await processResumeWorkflow(page, downloadedFile, name, threadId);
+            
+            // ✅ WEBHOOK 1: Log resume download
+            const resumeStatus = workflowResult.stages.readable ? 'Success/Readable' : 'Success/Unreadable';
+            if (isValidCandidateName(name)) {
+              await sendResumeDownloadWebhook(
+                name,
+                resumeStatus,
+                workflowResult.clientEmail || 'N/A',
+                threadId
+              );
+            } else {
+              log(`   ⚠️  Invalid name: "${name}" - resume webhook skipped`);
+            }
             
             if (workflowResult.stages.readable) {
               readableCount++;
               if (workflowResult.stages.draftCreated) {
                 workflowSuccess++;
+                
+                // ✅ WEBHOOK 2: Log draft creation
+                if (workflowResult.stages.draftCreated) {
+                  workflowSuccess++;
+                  if (isValidCandidateName(name)) {
+                    await sendDraftCreatedWebhook(name, 'Success');
+                  } else {
+                    log(`   ⚠️  Invalid name: "${name}" - draft webhook skipped`);
+                  }
+                }
               }
             } else {
               unreadableCount++;

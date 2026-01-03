@@ -1,0 +1,1021 @@
+{
+  "proposals": [
+    {
+      "name": "Sample Proposal",
+      "email": "sample@example.com",
+      "threadId": "t123456",
+      "status": "success",
+      "timestamp": "2025-12-27T19:00:00.000Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "threadId": "=",
+      "status": "success",
+      "timestamp": "2025-12-27T17:24:36.090Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "threadId": "=",
+      "status": "success",
+      "timestamp": "2025-12-28T02:31:56.254Z"
+    },
+    {
+      "name": "Proposal Batch - Step 7",
+      "email": "automation@linkedin.local",
+      "threadId": "step7-batch-1766925385218",
+      "status": "success",
+      "timestamp": "2025-12-28T12:36:25.323Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "threadId": "=",
+      "status": "success",
+      "timestamp": "2025-12-28T12:39:47.391Z"
+    },
+    {
+      "name": "Proposal Batch - Step 7",
+      "email": "automation@linkedin.local",
+      "threadId": "step7-batch-1766978215165",
+      "status": "success",
+      "timestamp": "2025-12-29T03:16:55.241Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "threadId": "=",
+      "status": "success",
+      "timestamp": "2025-12-29T03:20:19.713Z"
+    },
+    {
+      "name": "Proposal Batch - Step 7",
+      "email": "automation@linkedin.local",
+      "threadId": "step7-batch-1767006755887",
+      "status": "success",
+      "timestamp": "2025-12-29T11:12:35.981Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "threadId": "=",
+      "status": "success",
+      "timestamp": "2025-12-29T11:15:54.509Z"
+    },
+    {
+      "name": "Rahul Singla",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767011222156-26677",
+      "status": "success",
+      "timestamp": "2025-12-29T12:27:07.665Z"
+    },
+    {
+      "name": "Friedny Mendis",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767011299577-30017",
+      "status": "success",
+      "timestamp": "2025-12-29T12:28:24.533Z"
+    },
+    {
+      "name": "Tanavarapu Sunilkumar",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767011375276-90172",
+      "status": "success",
+      "timestamp": "2025-12-29T12:29:40.144Z"
+    },
+    {
+      "name": "Ram Kumar",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767011452343-9750",
+      "status": "success",
+      "timestamp": "2025-12-29T12:30:57.202Z"
+    },
+    {
+      "name": "Abhi Johnson",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767011528944-81821",
+      "status": "success",
+      "timestamp": "2025-12-29T12:32:13.847Z"
+    },
+    {
+      "name": 5,
+      "email": "N/A",
+      "threadId": "thread-1767011542725",
+      "status": "success",
+      "timestamp": "2025-12-29T12:32:22.739Z"
+    },
+    {
+      "name": "Kiran Sharma",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767011632797-21752",
+      "status": "success",
+      "timestamp": "2025-12-29T12:33:57.711Z"
+    },
+    {
+      "name": "Umme Saniya",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767011710090-98286",
+      "status": "success",
+      "timestamp": "2025-12-29T12:35:14.996Z"
+    },
+    {
+      "name": "Prem Chand Serawat",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767011786226-53098",
+      "status": "success",
+      "timestamp": "2025-12-29T12:36:31.107Z"
+    },
+    {
+      "name": "Saravanakumar Kuppusamy Prakasam",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767011862554-97358",
+      "status": "success",
+      "timestamp": "2025-12-29T12:37:47.355Z"
+    },
+    {
+      "name": "Jaimie Villamin",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767011938973-11894",
+      "status": "success",
+      "timestamp": "2025-12-29T12:39:03.841Z"
+    },
+    {
+      "name": 5,
+      "email": "N/A",
+      "threadId": "thread-1767011953227",
+      "status": "success",
+      "timestamp": "2025-12-29T12:39:13.234Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "threadId": "=",
+      "status": "success",
+      "timestamp": "2025-12-29T12:42:30.796Z"
+    },
+    {
+      "name": "Test Proposal Client",
+      "email": "proposal@test.com",
+      "threadId": "test-thread-1",
+      "status": "success",
+      "timestamp": "2025-12-30T01:22:52.348Z"
+    },
+    {
+      "name": "Mohammad Arbaj",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767057988288-35090",
+      "status": "success",
+      "timestamp": "2025-12-30T01:26:33.910Z"
+    },
+    {
+      "name": "Sathishkumar Sivalingam",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767058066668-84706",
+      "status": "success",
+      "timestamp": "2025-12-30T01:27:49.615Z"
+    },
+    {
+      "name": "Anthony Xavier",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767058141883-6144",
+      "status": "success",
+      "timestamp": "2025-12-30T01:29:07.251Z"
+    },
+    {
+      "name": "For Business",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767058218929-74106",
+      "status": "success",
+      "timestamp": "2025-12-30T01:30:24.501Z"
+    },
+    {
+      "name": "Bala Subramanian",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767058295245-92149",
+      "status": "success",
+      "timestamp": "2025-12-30T01:31:40.611Z"
+    },
+    {
+      "name": "5",
+      "email": "N/A",
+      "threadId": "thread-1767058308926",
+      "status": "success",
+      "timestamp": "2025-12-30T01:31:48.936Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "threadId": "=",
+      "status": "success",
+      "timestamp": "2025-12-30T01:34:21.293Z"
+    },
+    {
+      "name": "Ankit Kumar",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767061869127-78855",
+      "status": "success",
+      "timestamp": "2025-12-30T02:31:14.093Z"
+    },
+    {
+      "name": "Deepa Rajan",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767061946140-62460",
+      "status": "success",
+      "timestamp": "2025-12-30T02:32:31.076Z"
+    },
+    {
+      "name": "Prasenjit Jana",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767062022743-58247",
+      "status": "success",
+      "timestamp": "2025-12-30T02:33:47.616Z"
+    },
+    {
+      "name": "Priya Gahlot",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767062098906-53725",
+      "status": "success",
+      "timestamp": "2025-12-30T02:35:03.792Z"
+    },
+    {
+      "name": "Simran Walia",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767062175796-57010",
+      "status": "success",
+      "timestamp": "2025-12-30T02:36:20.671Z"
+    },
+    {
+      "name": "5",
+      "email": "N/A",
+      "threadId": "thread-1767062189266",
+      "status": "success",
+      "timestamp": "2025-12-30T02:36:29.278Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "threadId": "=",
+      "status": "success",
+      "timestamp": "2025-12-30T02:39:47.821Z"
+    },
+    {
+      "name": "Hemant Yadav",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767083469214-47090",
+      "status": "success",
+      "timestamp": "2025-12-30T08:31:14.714Z"
+    },
+    {
+      "name": "Rushabh Sonaiya",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767083545772-189",
+      "status": "success",
+      "timestamp": "2025-12-30T08:32:31.463Z"
+    },
+    {
+      "name": "Mona Abd Elsalam",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767083623353-45580",
+      "status": "success",
+      "timestamp": "2025-12-30T08:33:48.913Z"
+    },
+    {
+      "name": "Sachin Rao",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767083699505-90912",
+      "status": "success",
+      "timestamp": "2025-12-30T08:35:04.990Z"
+    },
+    {
+      "name": "Manish Singh",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767083776509-53492",
+      "status": "success",
+      "timestamp": "2025-12-30T08:36:21.886Z"
+    },
+    {
+      "name": "Soni Shah",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767083852497-64470",
+      "status": "success",
+      "timestamp": "2025-12-30T08:37:37.405Z"
+    },
+    {
+      "name": "Tifanni Ong",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767083928417-3578",
+      "status": "success",
+      "timestamp": "2025-12-30T08:38:53.968Z"
+    },
+    {
+      "name": "Vamsikrishna Atmakuri",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767084006486-51973",
+      "status": "success",
+      "timestamp": "2025-12-30T08:40:11.519Z"
+    },
+    {
+      "name": "Apoorva J A",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767084083584-97821",
+      "status": "success",
+      "timestamp": "2025-12-30T08:41:29.076Z"
+    },
+    {
+      "name": "Rakesh Kumar",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767084160532-18662",
+      "status": "success",
+      "timestamp": "2025-12-30T08:42:45.940Z"
+    },
+    {
+      "name": "10",
+      "email": "N/A",
+      "threadId": "thread-1767084173973",
+      "status": "success",
+      "timestamp": "2025-12-30T08:42:53.991Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "threadId": "=",
+      "status": "success",
+      "timestamp": "2025-12-30T08:48:20.569Z"
+    },
+    {
+      "name": "Md Afzal Alam",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767264473921-92477",
+      "status": "success",
+      "timestamp": "2026-01-01T10:47:58.948Z"
+    },
+    {
+      "name": "1",
+      "email": "N/A",
+      "threadId": "thread-1767264488041",
+      "status": "success",
+      "timestamp": "2026-01-01T10:48:08.055Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "threadId": "=",
+      "status": "success",
+      "timestamp": "2026-01-01T10:49:46.688Z"
+    },
+    {
+      "name": "Test User",
+      "email": "test@example.com",
+      "threadId": "12345",
+      "timestamp": "2026-01-01T16:19:47.257Z"
+    },
+    {
+      "name": "Prasad Neelawala",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767288059302-14784",
+      "timestamp": "2026-01-01T17:21:05.583Z"
+    },
+    {
+      "name": 1,
+      "email": "N/A",
+      "threadId": "thread-1767288074846",
+      "timestamp": "2026-01-01T17:21:15.912Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "threadId": "=",
+      "timestamp": "2026-01-01T17:22:57.823Z"
+    },
+    {
+      "name": "Jayash Verma",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767290888238-90528",
+      "timestamp": "2026-01-01T18:08:14.846Z"
+    },
+    {
+      "name": 1,
+      "email": "N/A",
+      "threadId": "thread-1767290903528",
+      "timestamp": "2026-01-01T18:08:24.292Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "threadId": "=",
+      "timestamp": "2026-01-01T18:10:04.581Z"
+    },
+    {
+      "name": "Sai Vindya Sri",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767322273045-43445",
+      "timestamp": "2026-01-02T03:08:41.368Z"
+    },
+    {
+      "name": "Moses Orekyeh",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767324385781-63483",
+      "timestamp": "2026-01-02T03:26:31.524Z"
+    },
+    {
+      "name": "Abdullah Algandor",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767324462813-39945",
+      "timestamp": "2026-01-02T03:27:48.367Z"
+    },
+    {
+      "name": "Sujal Dixit",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767324541547-73216",
+      "timestamp": "2026-01-02T03:29:07.663Z"
+    },
+    {
+      "name": "For Business",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767324619862-70742",
+      "timestamp": "2026-01-02T03:30:25.409Z"
+    },
+    {
+      "name": "Gaurav Kr",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767324697812-37126",
+      "timestamp": "2026-01-02T03:31:43.350Z"
+    },
+    {
+      "name": "For Business",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767324774878-36075",
+      "timestamp": "2026-01-02T03:33:00.461Z"
+    },
+    {
+      "name": "Mr Imaz",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767324851961-22552",
+      "timestamp": "2026-01-02T03:34:18.102Z"
+    },
+    {
+      "name": "Lisa Horton",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767324929577-38650",
+      "timestamp": "2026-01-02T03:35:35.324Z"
+    },
+    {
+      "name": "For Business",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767325007427-29699",
+      "timestamp": "2026-01-02T03:36:53.068Z"
+    },
+    {
+      "name": "Ramya Ramasamy",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767325084726-31834",
+      "timestamp": "2026-01-02T03:38:10.384Z"
+    },
+    {
+      "name": "Mohammad Ridwan",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767325162942-91437",
+      "timestamp": "2026-01-02T03:39:28.734Z"
+    },
+    {
+      "name": "Nitesh Rai",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767325241125-23603",
+      "timestamp": "2026-01-02T03:40:46.681Z"
+    },
+    {
+      "name": "Bhishm Narayan",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767325318992-83150",
+      "timestamp": "2026-01-02T03:42:05.435Z"
+    },
+    {
+      "name": "Manal Akhtar",
+      "email": "automation@linkedin.local",
+      "threadId": "fallback-1767325397660-73482",
+      "timestamp": "2026-01-02T03:43:23.160Z"
+    },
+    {
+      "name": 15,
+      "email": "N/A",
+      "threadId": "thread-1767325412138",
+      "timestamp": "2026-01-02T03:43:32.774Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "threadId": "=",
+      "timestamp": "2026-01-02T03:50:56.803Z"
+    }
+  ],
+  "followups": [
+    {
+      "name": "Sample Followup",
+      "email": "sample@example.com",
+      "status": "success",
+      "timestamp": "2025-12-27T19:00:00.000Z"
+    },
+    {
+      "name": "Followup Batch - Step 8",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up batch processing completed",
+      "threadId": "step8-batch-1766925587063",
+      "status": "success",
+      "timestamp": "2025-12-28T12:39:47.151Z"
+    },
+    {
+      "name": "Followup Batch - Step 8",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up batch processing completed",
+      "threadId": "step8-batch-1766978419482",
+      "status": "success",
+      "timestamp": "2025-12-29T03:20:19.554Z"
+    },
+    {
+      "name": "Abhi Johnson",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember47",
+      "status": "success",
+      "timestamp": "2025-12-29T12:33:57.087Z"
+    },
+    {
+      "name": "Ram Kumar",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember63",
+      "status": "success",
+      "timestamp": "2025-12-29T12:34:21.006Z"
+    },
+    {
+      "name": "Tanavarapu Sunilkumar",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember71",
+      "status": "success",
+      "timestamp": "2025-12-29T12:34:47.175Z"
+    },
+    {
+      "name": "Friedny Mendis",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember79",
+      "status": "success",
+      "timestamp": "2025-12-29T12:35:11.517Z"
+    },
+    {
+      "name": "Jaimie Villamin",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember48",
+      "status": "success",
+      "timestamp": "2025-12-29T12:40:47.327Z"
+    },
+    {
+      "name": "Saravanakumar Kuppusamy Prakasam",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember56",
+      "status": "success",
+      "timestamp": "2025-12-29T12:41:11.249Z"
+    },
+    {
+      "name": "Prem Chand Serawat",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember64",
+      "status": "success",
+      "timestamp": "2025-12-29T12:41:36.547Z"
+    },
+    {
+      "name": "Umme Saniya",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember72",
+      "status": "success",
+      "timestamp": "2025-12-29T12:42:00.406Z"
+    },
+    {
+      "name": "Kiran Sharma",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember104",
+      "status": "success",
+      "timestamp": "2025-12-29T12:42:27.336Z"
+    },
+    {
+      "name": "Test Followup Client",
+      "email": "followup@test.com",
+      "message": "Test follow-up message",
+      "threadId": "test-thread-2",
+      "status": "success",
+      "timestamp": "2025-12-30T01:22:52.352Z"
+    },
+    {
+      "name": "Bala Subramanian",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember48",
+      "status": "success",
+      "timestamp": "2025-12-30T01:33:22.362Z"
+    },
+    {
+      "name": "Anthony Xavier",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember72",
+      "status": "success",
+      "timestamp": "2025-12-30T01:33:45.980Z"
+    },
+    {
+      "name": "Mohammad Arbaj",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember80",
+      "status": "success",
+      "timestamp": "2025-12-30T01:34:13.093Z"
+    },
+    {
+      "name": "Simran Walia",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember48",
+      "status": "success",
+      "timestamp": "2025-12-30T02:38:02.579Z"
+    },
+    {
+      "name": "Priya Gahlot",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember56",
+      "status": "success",
+      "timestamp": "2025-12-30T02:38:26.452Z"
+    },
+    {
+      "name": "Prasenjit Jana",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember64",
+      "status": "success",
+      "timestamp": "2025-12-30T02:38:52.667Z"
+    },
+    {
+      "name": "ABDUR RAHMAN FIRTHOSHI.M",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember72",
+      "status": "success",
+      "timestamp": "2025-12-30T02:39:16.738Z"
+    },
+    {
+      "name": "Ankit Kumar",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember80",
+      "status": "success",
+      "timestamp": "2025-12-30T02:39:43.881Z"
+    },
+    {
+      "name": "Rakesh Kumar",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember48",
+      "status": "success",
+      "timestamp": "2025-12-30T08:44:27.825Z"
+    },
+    {
+      "name": "Apoorva J A",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember56",
+      "status": "success",
+      "timestamp": "2025-12-30T08:44:54.796Z"
+    },
+    {
+      "name": "Vamsikrishna Atmakuri",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember64",
+      "status": "success",
+      "timestamp": "2025-12-30T08:45:20.027Z"
+    },
+    {
+      "name": "Tifanni Ong",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember72",
+      "status": "success",
+      "timestamp": "2025-12-30T08:45:43.906Z"
+    },
+    {
+      "name": "Soni Shah",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember80",
+      "status": "success",
+      "timestamp": "2025-12-30T08:46:10.440Z"
+    },
+    {
+      "name": "Manish Singh",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember88",
+      "status": "success",
+      "timestamp": "2025-12-30T08:46:34.063Z"
+    },
+    {
+      "name": "Sachin Rao",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember96",
+      "status": "success",
+      "timestamp": "2025-12-30T08:47:01.521Z"
+    },
+    {
+      "name": "Mona Abd Elsalam",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember104",
+      "status": "success",
+      "timestamp": "2025-12-30T08:47:25.453Z"
+    },
+    {
+      "name": "Rushabh Sonaiya",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember121",
+      "status": "success",
+      "timestamp": "2025-12-30T08:47:49.963Z"
+    },
+    {
+      "name": "Hemant Yadav",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember129",
+      "status": "success",
+      "timestamp": "2025-12-30T08:48:14.802Z"
+    },
+    {
+      "name": "Md Afzal Alam",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "threadId": "ember47",
+      "status": "success",
+      "timestamp": "2026-01-01T10:49:42.193Z"
+    },
+    {
+      "name": "Prasad Neelawala",
+      "email": "automation@linkedin.local",
+      "message": "Follow-up: Resume request sent",
+      "timestamp": "2026-01-01T17:22:51.494Z"
+    },
+    {
+      "name": "Jayash Verma",
+      "email": "automation@linkedin.local",
+      "threadId": "ember47",
+      "timestamp": "2026-01-01T18:09:58.564Z"
+    },
+    {
+      "name": "Manal Akhtar",
+      "email": "automation@linkedin.local",
+      "threadId": "ember47",
+      "timestamp": "2026-01-02T03:45:07.541Z"
+    },
+    {
+      "name": "Bhishm Narayan(PMI certified)",
+      "email": "automation@linkedin.local",
+      "threadId": "ember55",
+      "timestamp": "2026-01-02T03:45:31.449Z"
+    },
+    {
+      "name": "Nitesh Rai",
+      "email": "automation@linkedin.local",
+      "threadId": "ember63",
+      "timestamp": "2026-01-02T03:45:58.278Z"
+    },
+    {
+      "name": "Mohammad Ridwan",
+      "email": "automation@linkedin.local",
+      "threadId": "ember71",
+      "timestamp": "2026-01-02T03:46:25.210Z"
+    },
+    {
+      "name": "Ramya Ramasamy",
+      "email": "automation@linkedin.local",
+      "threadId": "ember79",
+      "timestamp": "2026-01-02T03:46:50.124Z"
+    },
+    {
+      "name": "Lisa Horton",
+      "email": "automation@linkedin.local",
+      "threadId": "ember95",
+      "timestamp": "2026-01-02T03:47:16.163Z"
+    },
+    {
+      "name": "Mr Imaz",
+      "email": "automation@linkedin.local",
+      "threadId": "ember103",
+      "timestamp": "2026-01-02T03:47:41.160Z"
+    },
+    {
+      "name": "nilesh desai",
+      "email": "automation@linkedin.local",
+      "threadId": "ember111",
+      "timestamp": "2026-01-02T03:48:08.696Z"
+    },
+    {
+      "name": "Gaurav Kr. Ram",
+      "email": "automation@linkedin.local",
+      "threadId": "ember119",
+      "timestamp": "2026-01-02T03:48:36.502Z"
+    },
+    {
+      "name": "BHARGAVI DEOTARE",
+      "email": "automation@linkedin.local",
+      "threadId": "ember127",
+      "timestamp": "2026-01-02T03:49:03.726Z"
+    },
+    {
+      "name": "Sujal Dixit",
+      "email": "automation@linkedin.local",
+      "threadId": "ember128",
+      "timestamp": "2026-01-02T03:49:28.750Z"
+    },
+    {
+      "name": "Abdullah Algandor",
+      "email": "automation@linkedin.local",
+      "threadId": "ember129",
+      "timestamp": "2026-01-02T03:49:54.307Z"
+    },
+    {
+      "name": "Moses Orekyeh",
+      "email": "automation@linkedin.local",
+      "threadId": "ember130",
+      "timestamp": "2026-01-02T03:50:21.562Z"
+    },
+    {
+      "name": "MD. Rezwan Hossain Sajib",
+      "email": "automation@linkedin.local",
+      "threadId": "ember266",
+      "timestamp": "2026-01-02T03:50:51.590Z"
+    }
+  ],
+  "downloads": [
+    {
+      "name": "Sample Download",
+      "fileName": "resume.pdf",
+      "size": "150 KB",
+      "status": "success",
+      "timestamp": "2025-12-27T19:00:00.000Z"
+    },
+    {
+      "name": "Resume Downloads - Step 9",
+      "fileName": "batch-resumes",
+      "size": "1 files",
+      "threadId": "step9-downloads-1767007214370",
+      "status": "success",
+      "timestamp": "2025-12-29T11:20:14.411Z"
+    },
+    {
+      "name": "Test Download Client",
+      "fileName": "test_resume.pdf",
+      "size": "150 KB",
+      "threadId": "test-thread-3",
+      "status": "success",
+      "timestamp": "2025-12-30T01:22:52.354Z"
+    },
+    {
+      "name": "Rahul Singla",
+      "fileName": "resume_Rahul_Singla_1767058586081.pdf",
+      "size": "4 KB",
+      "threadId": "ember90",
+      "status": "success",
+      "timestamp": "2025-12-30T01:36:26.297Z"
+    },
+    {
+      "name": "Deepak Kumar",
+      "fileName": "resume_Deepak_Kumar_1767264674895.pdf",
+      "size": "63 KB",
+      "threadId": "ember55",
+      "status": "success",
+      "timestamp": "2026-01-01T10:51:15.072Z"
+    },
+    {
+      "name": "Manikant Kumar",
+      "fileName": "resume_Manikant_Kumar_1767288266387.docx",
+      "size": "37 KB",
+      "timestamp": "2026-01-01T17:24:27.653Z"
+    },
+    {
+      "name": "Prasad Neelawala",
+      "email": "N/A",
+      "threadId": "ember133",
+      "timestamp": "2026-01-02T03:54:36.741Z"
+    },
+    {
+      "name": "Md Afzal Alam",
+      "email": "N/A",
+      "threadId": "ember137",
+      "timestamp": "2026-01-02T03:55:16.083Z"
+    }
+  ],
+  "drafts": [
+    {
+      "name": "Sample Draft",
+      "email": "sample@example.com",
+      "draftId": "d123456",
+      "status": "success",
+      "timestamp": "2025-12-27T19:00:00.000Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "draftId": "=",
+      "subject": "Resume & LinkedIn Profile Enhancement",
+      "status": "success",
+      "timestamp": "2025-12-28T02:35:55.612Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "draftId": "=",
+      "subject": "Resume & LinkedIn Profile Enhancement",
+      "status": "success",
+      "timestamp": "2025-12-28T12:43:56.034Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "draftId": "=",
+      "subject": "Resume & LinkedIn Profile Enhancement",
+      "status": "success",
+      "timestamp": "2025-12-29T03:24:27.534Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "draftId": "=",
+      "subject": "Resume & LinkedIn Profile Enhancement",
+      "status": "success",
+      "timestamp": "2025-12-29T11:20:14.468Z"
+    },
+    {
+      "name": "Test Draft Client",
+      "email": "draft@test.com",
+      "draftId": "test-draft-123",
+      "subject": "Test Resume Enhancement",
+      "status": "success",
+      "timestamp": "2025-12-30T01:22:52.358Z"
+    },
+    {
+      "name": "Rahul Singla",
+      "email": "rahulsingla13996@gmail.com",
+      "draftId": "r-3206606844922035979",
+      "subject": "Resume & LinkedIn Profile Enhancement for Rahul Singla",
+      "status": "success",
+      "timestamp": "2025-12-30T01:36:51.272Z"
+    },
+    {
+      "name": "Deepak Kumar",
+      "email": "Contactdeepak239@gmail.com",
+      "draftId": "r-4069200075435834605",
+      "subject": "Resume & LinkedIn Profile Enhancement for Deepak Kumar",
+      "status": "success",
+      "timestamp": "2026-01-01T10:51:40.343Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "draftId": "=",
+      "subject": "undefined",
+      "status": "success",
+      "timestamp": "2026-01-01T10:51:43.455Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "draftId": "=",
+      "subject": "N/A",
+      "timestamp": "2026-01-01T17:24:30.924Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "threadId": "N/A",
+      "timestamp": "2026-01-01T18:11:35.166Z"
+    },
+    {
+      "name": "Md Afzal Alam",
+      "email": "mdafzalalam026@gmail.com",
+      "threadId": "N/A",
+      "timestamp": "2026-01-02T03:55:40.455Z"
+    },
+    {
+      "name": "=",
+      "email": "=",
+      "threadId": "N/A",
+      "timestamp": "2026-01-02T03:55:43.472Z"
+    }
+  ]
+}

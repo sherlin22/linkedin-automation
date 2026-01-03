@@ -1,4 +1,4 @@
-// helpers/resume-parser.js - FIXED VERSION
+// helpers/resume-parser.js - FIXED VERSION (Safe URI Decode)
 const fs = require('fs');
 
 // Try multiple PDF parsing methods
@@ -15,7 +15,7 @@ async function parsePDF(filePath) {
       console.log('📄 pdf-parse failed:', error.message);
     }
 
-    // Method 2: Try pdf2json (FIXED - removed extra quote)
+    // Method 2: Try pdf2json (FIXED - Safe URI decode with try-catch)
     try {
       const PDFParser = require('pdf2json');
       return new Promise((resolve, reject) => {
@@ -27,14 +27,27 @@ async function parsePDF(filePath) {
         
         pdfParser.on('pdfParser_dataReady', pdfData => {
           let text = '';
-          pdfData.Pages.forEach(page => {
-            page.Texts.forEach(textItem => {
-              text += decodeURIComponent(textItem.R[0].T) + ' ';
+          try {
+            pdfData.Pages.forEach(page => {
+              page.Texts.forEach(textItem => {
+                try {
+                  // ✅ CRITICAL FIX: Safe URI decode with try-catch
+                  const decodedText = safeDecodeURI(textItem.R[0].T);
+                  text += decodedText + ' ';
+                } catch (decodeError) {
+                  // If decode fails, use the raw text
+                  console.warn('   ⚠️  Failed to decode text item, using raw:', textItem.R[0].T.substring(0, 50));
+                  text += (textItem.R[0].T || '') + ' ';
+                }
+              });
+              text += '\n';
             });
-            text += '\n';
-          });
-          console.log('✅ PDF parsed successfully with pdf2json');
-          resolve({ success: true, text: text.trim(), method: 'pdf2json' });
+            
+            console.log('✅ PDF parsed successfully with pdf2json');
+            resolve({ success: true, text: text.trim(), method: 'pdf2json' });
+          } catch (processingError) {
+            reject(new Error('Error processing PDF data: ' + processingError.message));
+          }
         });
         
         pdfParser.loadPDF(filePath);
@@ -92,6 +105,30 @@ async function parsePDF(filePath) {
   }
 }
 
+/**
+ * ✅ CRITICAL FIX: Safe URI decode that doesn't throw on malformed input
+ */
+function safeDecodeURI(encodedString) {
+  if (!encodedString) return '';
+  
+  try {
+    // Try normal decoding first
+    return decodeURIComponent(encodedString);
+  } catch (error) {
+    // If it fails, it's likely not properly URI-encoded
+    // Return the original string or a sanitized version
+    console.warn('   ⚠️  decodeURIComponent failed, using fallback for:', encodedString.substring(0, 30));
+    
+    try {
+      // Try decoding as UTF-8 manually
+      return Buffer.from(encodedString, 'utf8').toString('utf8');
+    } catch (e) {
+      // Last resort: return as-is
+      return String(encodedString);
+    }
+  }
+}
+
 async function extractEmailFromResume(filePath, fileExtension) {
   try {
     console.log(`🔍 [Email Extraction] Starting for: ${filePath}`);
@@ -109,7 +146,7 @@ async function extractEmailFromResume(filePath, fileExtension) {
       }
       
       const text = result.text || '';
-      console.log(`📝 [Email Extraction] Text length: ${text.length} chars`);
+      console.log(`🔍 [Email Extraction] Text length: ${text.length} chars`);
       
       // Email regex pattern
       const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
@@ -187,5 +224,6 @@ async function extractExperienceYears(filePath, fileExtension) {
 module.exports = {
   extractEmailFromResume,
   extractExperienceYears,
-  parsePDF
+  parsePDF,
+  safeDecodeURI
 };

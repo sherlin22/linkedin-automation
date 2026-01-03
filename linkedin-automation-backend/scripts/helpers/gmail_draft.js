@@ -1,7 +1,8 @@
-// scripts/helpers/gmail_draft.js - WITH ATTACHMENT AND FIXED FORMATTING
+// scripts/helpers/gmail_draft.js 
 const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
+const { updateMetric } = require('./metrics-handler');
 require('dotenv').config();
 
 const GMAIL_TEMPLATE = `Dear {name},
@@ -40,7 +41,7 @@ Deepa Rajan
 deeparajan890@gmail.com`;
 
 /**
- * ✅ NEW: Clean Markdown formatting from OpenAI response
+ * ✅ Clean Markdown formatting from OpenAI response
  */
 function cleanMarkdownForEmail(text) {
   if (!text) return text;
@@ -117,7 +118,7 @@ async function createGmailDraft(options = {}) {
     oauth2Client.setCredentials(tokenData);
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
-    // ✅ CRITICAL FIX: Clean the critique before inserting into email
+    // ✅ Clean the critique before inserting into email
     const cleanedCritique = cleanMarkdownForEmail(resumeCritique);
     
     console.log('   🧹 Cleaned Markdown formatting from critique');
@@ -152,9 +153,24 @@ async function createGmailDraft(options = {}) {
 
     const draftId = result.data.id;
     const draftLink = `https://mail.google.com/mail/u/0/#drafts/${draftId}`;
+    
 
     console.log(`   ✅ Gmail Draft created: ${draftId}`);
     console.log(`   ✅ Gmail Draft: ${draftLink}`);
+
+    // 📊 METRICS TRACKING 
+    const currentHour = new Date().getHours();
+    let slot = 'slot1'; // default 8am
+    
+    if (currentHour >= 14 && currentHour < 18) {
+      slot = 'slot2'; // 2pm slot
+    } else if (currentHour >= 18) {
+      slot = 'slot3'; // 6pm slot
+    }
+    
+    updateMetric(slot, 'drafts', 1);
+    console.log(`📊 Metrics: Updated ${slot} drafts count`);
+    // END METRICS
 
     return {
       success: true,
@@ -234,5 +250,5 @@ function buildRawMessageWithAttachment(options = {}) {
 
 module.exports = {
   createGmailDraft,
-  cleanMarkdownForEmail // Export for testing if needed
+  cleanMarkdownForEmail
 };

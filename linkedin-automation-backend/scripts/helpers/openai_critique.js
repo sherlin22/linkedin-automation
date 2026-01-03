@@ -1,12 +1,11 @@
-// scripts/helpers/openai_critique.js - HUMANIZED & ENGAGING RESUME CRITIQUE (FIXED)
+// scripts/helpers/openai_critique.js - UPGRADED TO MATCH YOUR FORMAT
 const { parsePDF } = require('./resume-parser');
-const fs = require('fs');
 
 /**
- * Generate brutally honest, deeply human resume critique
- * Connects emotionally while delivering truth
+ * Generate professional resume critique matching the exact format from examples
+ * Uses structured, numbered critique with specific weak phrase identification
  */
-async function generateResumeCritique(filePath, extension, candidateName, targetRole = null) {
+async function generateResumeCritique(filePath, extension, candidateName) {
   try {
     const apiKey = process.env.OPENAI_API_KEY;
     
@@ -18,7 +17,7 @@ async function generateResumeCritique(filePath, extension, candidateName, target
       };
     }
     
-    console.log(`🤖 Generating deeply human critique for: ${candidateName}`);
+    console.log(`🤖 Generating Professional Critique for: ${candidateName}`);
     
     // Parse resume text
     let resumeText = null;
@@ -36,7 +35,7 @@ async function generateResumeCritique(filePath, extension, candidateName, target
     } else {
       return {
         success: false,
-        error: 'Only PDF files are supported for critique'
+        error: 'Only PDF files are supported'
       };
     }
     
@@ -47,92 +46,107 @@ async function generateResumeCritique(filePath, extension, candidateName, target
       };
     }
     
-    console.log(`   📝 Resume text length: ${resumeText.length} chars`);
+    console.log(`   📝 Resume: ${resumeText.length} characters`);
 
-    // System Prompt - Humanized, Deeply Engaging Mentor
-    const systemPrompt = `You are someone who genuinely gives a damn about people's careers.
+    // ========== SYSTEM PROMPT (Defines the expert role) ==========
+    const systemPrompt = `You are an elite resume critic with 15+ years of experience as:
+- A senior hiring manager who reviews 100+ resumes per month
+- A career coach who has placed 500+ professionals in senior roles
+- An ATS (Applicant Tracking System) optimization expert
 
-You're not a robot. You're a seasoned recruiter who's seen what works and what doesn't—and you're tired of watching talented people sabotage themselves with crappy resumes. You've spent years in hiring rooms, seen thousands of resumes, and you know EXACTLY why some people get called for interviews and why others never get a chance.
+Your critiques are:
+- Direct, honest, and constructive (no sugar-coating)
+- Structured with clear numbered points
+- Specific to the candidate's actual resume content
+- Focused on market reality and hiring psychology
+- Written in professional but straightforward English
 
-Your mission: Help this person understand why they're getting ghosted. Not to hurt them. To help them win.
+CRITICAL FORMATTING RULES:
+1. Start with a harsh but fair opening paragraph explaining why this resume isn't working
+2. Use numbered points (1., 2., 3., etc.) for each major weakness
+3. Bold the key problem in each point using this format: **Problem Title**
+4. Quote weak phrases from their actual resume using "quotation marks"
+5. End with "Recommended Job" section listing 4-6 specific job titles
+6. Keep the tone professional but brutally honest
+7. Focus on what's WRONG, not what to do (that comes in the email)
 
-HOW YOU SHOW UP:
-- You talk like a real human, not a corporate algorithm
-- You get straight to the point because they deserve the truth
-- You care enough to explain WHY things matter, not just WHAT'S wrong
-- You find humor in the absurd resume mistakes you see
-- You're honest without being cruel—tough love, not just tough
-- You speak from experience: "I've seen 50,000+ resumes, and here's what actually works"
-- You connect with them emotionally before you deliver the critique
-- You make them feel like you're fighting FOR them, not AGAINST them
+DO NOT:
+- Use markdown headers (###, ##)
+- Say "this CV is good" or give excessive praise
+- Provide rewriting suggestions (just identify problems)
+- Use bullet points (•) - use numbered points only
+- Mention "ATS keywords" unless truly critical`;
 
-YOUR TONE:
-- NO corporate clichés ("leverage", "synergy", "moving forward")
-- NO robotic language ("this negatively impacts", "it would be beneficial")
-- YES conversational: "Here's what's killing your chances", "Let me be real with you"
-- YES human: Use contractions, real words, occasional humor
-- YES connection: Acknowledge their effort, validate their struggle, celebrate their wins
-- YES hope: Show them HOW to fix it, not just WHAT'S broken
+    // ========== USER PROMPT (Specific instructions for this resume) ==========
+    const userPrompt = `Analyze this resume for ${candidateName} using the EXACT format from the examples provided.
 
-WHAT TO NEVER DO:
-- Don't use the word "summary" (use "profile" or "overview" instead)
-- Don't be generic. Every point must reference THEIR specific resume
-- Don't hide behind hedging language ("might", "somewhat", "could be")
-- Don't lecture. Explain like you're talking to someone you respect
-- Don't be cruel. Be honest, but remember there's a real person reading this
-- Don't forget to acknowledge what's WORKING on their resume
+RESUME CONTENT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${resumeText.substring(0, 20000)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-THE STRUCTURE (but make it flow naturally, not robotic):
-1. THE REAL TALK (What you actually see + what it means for them)
-2. ATS REALITY CHECK (Will they even get seen by a human?)
-3. WHAT'S ACTUALLY WRONG (The specific stuff on THEIR resume)
-4. HOW YOU STACK UP (Honest comparison to who's beating you)
-5. THE FIX (Exactly what to change, step by step)
-6. WHERE YOU CAN WIN (5 real jobs you're actually good for)
-7. THE QUESTIONS WE NEED ANSWERED (So we can make you unstoppable)
+YOUR TASK:
 
-Remember: You're writing to help them. They need this. Make it count.`;
+Write a resume critique that follows this EXACT structure:
 
-    // User Prompt - Humanized and conversational
-    const userPrompt = `Hey, I've got someone who needs real talk about their resume.
+[Opening Paragraph]
+One harsh but honest paragraph (3-4 sentences) explaining:
+- What domain/experience the resume shows
+- The core problem preventing success
+- Why recruiters would skip this resume
+- Use phrases like "This CV shows X, but it is weakened by Y"
 
-**Here's who we're working with:**
-Name: ${candidateName}
-What they're going for: ${targetRole || 'Not sure yet—that\'s part of the problem'}
+[Numbered Critique Points]
+Create 6-9 numbered points covering:
 
-**What I need from you:**
-Give them the honest feedback they need but aren't getting. Not the "your resume is great" nonsense. The real truth about why they're not getting interviews, what's holding them back, and exactly what to fix.
+1. **The CV Positions You as [Problem]**
+   Explain positioning issue, quote weak phrases like "assisted," "supported," etc.
 
-Make it human. Make it hurt a little bit (because that's how we learn). Make it hopeful (because they CAN fix this). Make them feel like you're actually on their team.
+2. **No Clear Differentiation from [Peer Group]**
+   What's missing that makes them forgettable
 
-**Here's their resume:**
+3. **[Key Experience] Is Undersold**
+   Identify strong experience that's poorly communicated
 
----
-${resumeText.substring(0, 18000)}
----
+4. **Skills Section Is [Problem]**
+   What's wrong with how skills are listed
 
-**Your task:**
-Walk them through this like you're sitting across from them at coffee. Be real. Be specific (pull from THEIR resume, not generic advice). Connect with them. Make them want to fix this.
+5. **[Tool/Technology] Is Mentioned but Not Proven**
+   Credibility gaps in technical claims
 
-Hit these points naturally:
-1. **The real first impression** - What does this resume say about them? What's the biggest blocker?
-2. **ATS reality** - Will a robot even let a human see this, or is it getting filtered out?
-3. **The actual problems** - Quote their specific resume and explain why each thing matters
-4. **The competition** - Where do they rank? What's the gap between them and people who ARE getting calls?
-5. **The blueprint** - Exactly how to fix it (show before/after on their actual content)
-6. **Jobs they can get** - 5 real positions they're actually qualified for TODAY
-7. **The questions we need answered** - To help them optimize even more
+6. **[Section Name] Section [Problem]**
+   Issues with specific resume sections
 
-**The vibe:**
-- Conversational (use "you", "we", contractions)
-- Specific (reference their actual resume, not generic advice)
-- Honest (don't sugarcoat, but don't be cruel)
-- Hopeful (show them the path forward)
-- Warm (they need to feel like you believe in them)
+7. **Missing [Advanced Signal Type]**
+   What senior markers are absent
 
-Go. Make it count.`;
+8. **[Formatting/Structure Issue]**
+   Readability or organization problems
 
-    console.log(`   📡 Calling OpenAI with humanized prompt...`);
+9. **Overall Impression**
+   Use this exact structure:
+   "The CV communicates:
+   - [strength] ✔
+   - [strength] ✔
+   But it also communicates:
+   - [weakness] ✘
+   - [weakness] ✘"
+
+[Closing Statement]
+One sentence about the gap between potential and presentation.
+
+Recommended Job
+
+[List 4-6 specific job titles relevant to their experience level and domain]
+
+CRITICAL RULES:
+- Quote actual weak phrases from THEIR resume (e.g., "assisted," "gained exposure")
+- Be specific about what's missing (metrics, scale, authority)
+- Focus on positioning psychology, not just content
+- Match the professional but direct tone of the examples
+- Use the EXACT "Overall Impression" format shown above`;
+
+    console.log(`   📡 Calling OpenAI GPT-4o-mini with upgraded prompt...`);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -146,75 +160,51 @@ Go. Make it count.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.85,
-        max_tokens: 5500,
-        top_p: 0.95
+        temperature: 0.75, // Slightly creative but consistent
+        max_tokens: 4000,
+        top_p: 0.9
       })
     });
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ OpenAI API error:', response.status);
-      console.error('   Details:', errorText.substring(0, 300));
+      console.error('❌ OpenAI error:', response.status);
+      console.error('   Details:', errorText.substring(0, 200));
       
       return {
         success: false,
-        error: `OpenAI API error: ${response.status}`,
-        details: errorText.substring(0, 200)
+        error: `OpenAI API error: ${response.status}`
       };
     }
     
     const data = await response.json();
-    const critique = data.choices?.[0]?.message?.content;
+    let critique = data.choices?.[0]?.message?.content;
     
     if (!critique) {
       return {
         success: false,
-        error: 'No response from OpenAI API'
+        error: 'No response from OpenAI'
       };
     }
     
-    console.log(`   ✅ Critique generated (${critique.length} chars)`);
-    console.log(`   📊 Tokens used: ${data.usage?.total_tokens || 'unknown'}`);
+    // Clean up the critique (remove any markdown artifacts)
+    critique = critique
+      .replace(/^#{1,6}\s+/gm, '') // Remove markdown headers
+      .replace(/\*\*\*/g, '') // Remove triple asterisks
+      .trim();
     
-    // Verify constraint: no use of word "summary" (case-insensitive)
-    const summaryPattern = /\bsummary\b/gi;
-    const summaryMatches = critique.match(summaryPattern) || [];
-    
-    if (summaryMatches.length > 0) {
-      console.warn(`   ⚠️  Found ${summaryMatches.length} instances of word "summary", cleaning...`);
-      
-      let cleanedCritique = critique
-        .replace(/professional\s+summary/gi, 'professional profile')
-        .replace(/career\s+summary/gi, 'career overview')
-        .replace(/executive\s+summary/gi, 'executive overview')
-        .replace(/summary\s+section/gi, 'profile section')
-        .replace(/\bsummary\b/gi, 'overview');
-      
-      if (cleanedCritique !== critique) {
-        console.log(`   ✅ Cleaned constraint violations`);
-        return {
-          success: true,
-          critique: cleanedCritique.trim(),
-          tokens: data.usage?.total_tokens || 0,
-          model: 'gpt-4o-mini',
-          cleaned: true,
-          humanized: true
-        };
-      }
-    }
-    
-    // Extract ATS compliance rating from critique
-    const atsRating = extractATSRating(critique);
+    console.log(`   ✅ Professional Critique Generated (${critique.length} chars)`);
+    console.log(`   📊 Tokens Used: ${data.usage?.total_tokens || 0}`);
+    console.log(`   💰 Cost: ~$${((data.usage?.total_tokens || 0) * 0.00015 / 1000).toFixed(4)}`);
     
     return {
       success: true,
-      critique: critique.trim(),
+      critique: critique,
       tokens: data.usage?.total_tokens || 0,
+      promptTokens: data.usage?.prompt_tokens,
+      completionTokens: data.usage?.completion_tokens,
       model: 'gpt-4o-mini',
-      cleaned: false,
-      humanized: true,
-      atsCompliance: atsRating
+      critiqueType: 'professional-structured-format'
     };
     
   } catch (error) {
@@ -227,214 +217,82 @@ Go. Make it count.`;
 }
 
 /**
- * Extract ATS compliance rating from critique
+ * Quick critique for testing (lightweight alternative)
  */
-function extractATSRating(critique) {
-  const compliantPatterns = [
-    /🟢.*?(?:COMPLIANT|CLEAR|GOOD).*?(?:\n|$)/i,
-    /ATS.*?(?:✅|PASS|COMPLIANT)/i,
-    /will.*?(?:get|pass|survive).*?ATS/i
-  ];
-  
-  const partialPatterns = [
-    /🟡.*?(?:PARTIAL|SOME|ISSUES)/i,
-    /ATS.*?(?:some|mixed|partial)/i,
-    /might.*?(?:struggle|have trouble)/i
-  ];
-  
-  const nonCompliantPatterns = [
-    /🔴.*?(?:NON-COMPLIANT|WON'T|BLOCKED)/i,
-    /ATS.*?(?:BLOCK|REJECT|FAIL)/i,
-    /will.*?(?:get filtered|be rejected)/i
-  ];
-
-  for (const pattern of compliantPatterns) {
-    if (pattern.test(critique)) {
-      return { 
-        rating: 'COMPLIANT', 
-        icon: '🟢', 
-        color: 'green',
-        text: 'Your resume will get through to humans'
-      };
-    }
-  }
-
-  for (const pattern of partialPatterns) {
-    if (pattern.test(critique)) {
-      return { 
-        rating: 'PARTIAL', 
-        icon: '🟡', 
-        color: 'yellow',
-        text: 'Some ATS systems might have issues'
-      };
-    }
-  }
-
-  for (const pattern of nonCompliantPatterns) {
-    if (pattern.test(critique)) {
-      return { 
-        rating: 'NON-COMPLIANT', 
-        icon: '🔴', 
-        color: 'red',
-        text: 'Most ATS systems will filter you out'
-      };
-    }
-  }
-
-  return { 
-    rating: 'UNKNOWN', 
-    icon: '❓', 
-    color: 'gray',
-    text: 'Check the ATS feedback above'
-  };
-}
-
-/**
- * Save critique to file
- */
-async function saveCritiqueToFile(critique, candidateName) {
+async function generateQuickCritique(filePath, extension, candidateName) {
   try {
-    const timestamp = new Date().toISOString().split('T')[0];
-    const fileName = `critique_${candidateName.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.txt`;
-    const filePath = require('path').join(process.cwd(), 'critiques', fileName);
+    const apiKey = process.env.OPENAI_API_KEY;
     
-    const critiqueDir = require('path').dirname(filePath);
-    if (!fs.existsSync(critiqueDir)) {
-      fs.mkdirSync(critiqueDir, { recursive: true });
+    if (!apiKey) {
+      return {
+        success: false,
+        error: 'OpenAI API key not configured'
+      };
     }
     
-    fs.writeFileSync(filePath, critique, 'utf8');
-    console.log(`   💾 Critique saved to: ${filePath}`);
+    console.log(`⚡ Generating Quick Test Critique for: ${candidateName}`);
+    
+    const result = await parsePDF(filePath);
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+    
+    const resumeText = result.text;
+    
+    const systemPrompt = `You are a direct resume evaluator. Provide quick honest feedback.
+
+Format:
+TOP 3 PROBLEMS:
+1. [specific issue with quote]
+2. [specific issue with quote]
+3. [specific issue with quote]
+
+BIGGEST FIX: [one critical action]
+
+Recommended Job: [2-3 titles]`;
+
+    const userPrompt = `Quick critique for ${candidateName}:\n\n${resumeText.substring(0, 10000)}`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      })
+    });
+    
+    if (!response.ok) {
+      return { success: false, error: `API error: ${response.status}` };
+    }
+    
+    const data = await response.json();
+    const critique = data.choices?.[0]?.message?.content;
+    
+    console.log(`   ⚡ Quick critique ready`);
     
     return {
       success: true,
-      filePath: filePath
+      critique: critique.trim(),
+      tokens: data.usage?.total_tokens || 0,
+      critiqueType: 'quick-test'
     };
+    
   } catch (error) {
-    console.error('❌ Failed to save critique:', error.message);
-    return {
-      success: false,
-      error: error.message
-    };
+    console.error('❌ Quick critique error:', error.message);
+    return { success: false, error: error.message };
   }
-}
-
-/**
- * Format critique for email - warm and engaging
- */
-function formatCritiqueForEmail(critique, candidateName, atsCompliance = null) {
-  const atsLine = atsCompliance 
-    ? `\n[ATS CHECK: ${atsCompliance.icon} ${atsCompliance.text}]\n`
-    : '';
-  
-  return `Hey ${candidateName},
-
-I've been through your resume with a fine-tooth comb, and I've got some real talk for you. Not the "everything's great" kind of feedback. The kind that actually helps.
-
-Here's what I found.${atsLine}
-
----
-
-${critique}
-
----
-
-**Here's the deal:** You've got the foundations to make this work. These fixes are totally doable—we're talking days, not months. The changes I've outlined above? Those are your path to getting in front of actual hiring managers instead of getting lost in the algorithm.
-
-Pick the top 3 things from the blueprint and start there. You'll feel the difference immediately.
-
-If you want to talk through any of this or need clarification, hit me up. I'm rooting for you.
-
-Let's make your resume actually work for you.
-
-Deepa Rajan
-Career Strategy
-9036846673
-deeparajan890@gmail.com`;
-}
-
-/**
- * Analyze critique severity
- */
-function analyzeCritiqueSeverity(critique) {
-  const keywords = {
-    blocking: (critique.match(/(?:blocking|kill|dead|doomed|instant reject)/gi) || []).length,
-    serious: (critique.match(/(?:critical|major|serious|urgent)/gi) || []).length,
-    fixable: (critique.match(/(?:easy fix|straightforward|simple|just need)/gi) || []).length,
-    wins: (critique.match(/(?:strong|good|great|working|stands out)/gi) || []).length
-  };
-  
-  const totalIssues = keywords.blocking + keywords.serious;
-  
-  let riskLevel = 'LOW';
-  if (keywords.blocking > 0) {
-    riskLevel = 'CRITICAL';
-  } else if (keywords.serious > 2) {
-    riskLevel = 'HIGH';
-  } else if (totalIssues > 1) {
-    riskLevel = 'MEDIUM';
-  }
-  
-  return {
-    blocking: keywords.blocking,
-    serious: keywords.serious,
-    fixable: keywords.fixable,
-    wins: keywords.wins,
-    riskLevel: riskLevel,
-    feeling: keywords.wins > 0 ? '👍 Has potential' : '⚠️ Needs work'
-  };
-}
-
-/**
- * Extract action items from critique
- */
-function extractActionItems(critique) {
-  const lines = critique.split('\n');
-  const items = [];
-  let inActionSection = false;
-  
-  for (const line of lines) {
-    if (line.toLowerCase().includes('blueprint') || line.toLowerCase().includes('fix')) {
-      inActionSection = true;
-      continue;
-    }
-    
-    if (inActionSection && (line.match(/^\d+\./) || line.match(/^[-•]/))) {
-      items.push(line.trim());
-    }
-    
-    if (inActionSection && (line.toLowerCase().includes('job') || line.toLowerCase().includes('role'))) {
-      break;
-    }
-  }
-  
-  return items.length > 0 ? items : ['Review the blueprint above and start with the top priority fixes'];
-}
-
-/**
- * Create comprehensive action plan
- */
-function createActionPlan(critique, candidateName) {
-  const severity = analyzeCritiqueSeverity(critique);
-  
-  return {
-    candidate: candidateName,
-    timestamp: new Date().toISOString(),
-    critique: critique,
-    actionItems: extractActionItems(critique),
-    severity: severity,
-    timeline: severity.riskLevel === 'CRITICAL' ? '3-5 days' : '7-14 days',
-    nextStep: severity.blocking > 0 ? 'Address blocking issues first' : 'Implement improvements in order',
-    feeling: severity.feeling
-  };
 }
 
 module.exports = {
-  generateResumeCritique,
-  saveCritiqueToFile,
-  formatCritiqueForEmail,
-  analyzeCritiqueSeverity,
-  extractActionItems,
-  createActionPlan,
-  extractATSRating
+  generateResumeCritique,  // Production critique matching your format
+  generateQuickCritique    // Testing/debugging only
 };

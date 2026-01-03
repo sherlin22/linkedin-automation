@@ -1,25 +1,17 @@
 {
-  "name": "scripts",
+  "name": "linkedin-automation-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "check_linkedin_session.js",
+  "description": "Node.js Express server for LinkedIn automation event logging",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "googleapis": "^165.0.0",
-    "node-poppler": "^9.0.1",
-    "open": "^10.2.0",
-    "openai": "^6.9.1",
-    "pdf-parse": "^1.1.4",
-    "pdf2json": "^4.0.0",
-    "pdfjs-dist": "^5.4.394",
-    "playwright": "^1.57.0"
+    "express": "^4.18.2",
+    "googleapis": "^118.0.0",
+    "open": "^11.0.0"
   }
-  
 }

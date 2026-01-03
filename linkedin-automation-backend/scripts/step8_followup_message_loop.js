@@ -3,6 +3,8 @@ const fs = require("fs");
 const path = require("path");
 const minimist = require("minimist");
 const playwright = require("playwright");
+const { updateMetric } = require('./helpers/metrics-handler');
+const { isValidCandidateName } = require('./helpers/validation-helpers');
 
 const args = minimist(process.argv.slice(2), {
   string: ["auth", "state", "followups", "browser", "profile", "slowMo"],
@@ -23,6 +25,38 @@ const args = minimist(process.argv.slice(2), {
 args.max = Number(args.max) || 15;
 
 const FOLLOWUP_MSG = `Hi, Pls share your Resume to proceed further discussion.`;
+
+ async function sendFollowupWebhook(clientName, email, threadId) {
+  try {
+    console.log(`📡 Sending followup webhook for: ${clientName}`);
+    
+    const payload = {
+      clientName: clientName || 'Unknown',
+      email: email || 'N/A',
+      message: 'Follow-up: Resume request sent',
+      threadId: threadId || `thread-${Date.now()}`,
+      status: 'success',
+      timestamp: new Date().toISOString()
+    };
+
+    const response = await fetch('http://localhost:3000/api/automation/followup-sent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      console.log(`   ✅ Webhook sent for ${clientName}`);
+      return true;
+    } else {
+      console.log(`   ⚠️  Webhook failed: ${response.status}`);
+      return false;
+    }
+  } catch (error) {
+    console.log('⚠️  Webhook error:', error.message);
+    return false;
+  }
+}
 
 // --- Load state files ---
 function loadJson(file, fallback) {
@@ -63,17 +97,9 @@ if (args.reset) {
   safeSave(args.followups, followups);
 }
 
-function isValidProposalName(name) {
-  if (!name || name.length < 2) return false;
-  if (name === 'there' || name === 'Unknown') return false;
-  if (/view|profile|notification|dialog|content|submit|send|resume|writing|search|network|thanks|business/i.test(name)) return false;
-  if (!/[A-Z]/.test(name)) return false;
-  return true;
-}
-
 const proposalRecipients = new Set(
   (proposalsState.submittedNames || [])
-    .filter(isValidProposalName)
+    .filter(isValidCandidateName)
 );
 
 console.log(`\n📋 PROPOSAL RECIPIENTS: ${proposalRecipients.size} unique names`);
@@ -555,6 +581,10 @@ async function verifyMessageSent(page, expectedMessage) {
       }
 
       log(`🔍 [${threadIndex + 1}/${threads.length}] Checking: ${name}`);
+      if (!isValidCandidateName(name)) {
+        log(`   ⚠️  Invalid name: "${name}" - skipping thread`);
+        continue; // Skip this thread entirely
+      }
 
       // ✅ CRITICAL FIX: Check already contacted FIRST and skip immediately
       if (namesAlreadyContacted.has(name)) {
@@ -619,30 +649,56 @@ async function verifyMessageSent(page, expectedMessage) {
 
       if (args.confirm) {
         await page.waitForTimeout(1000 + Math.floor(Math.random() * 1000));
-       
+        
         const sent = await sendFollowUp(page, FOLLOWUP_MSG);
         if (sent) {
           const verified = await verifyMessageSent(page, FOLLOWUP_MSG);
-         
+          
           if (verified) {
             log(`   ✅ Follow-up sent and verified: ${name}`);
           } else {
             log(`   ⚠️ Follow-up may not have sent: ${name}`);
           }
-         
-          // ✅ Only increment on successful send
-          newFollowups++;
           
+          
+          // ✅ NOW send webhooks - name is already validated
+          try {
+            await fetch('http://localhost:3000/api/automation/followup-sent', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                clientName: name,  // Safe - already validated
+                threadId: thread.getAttribute('data-urn') || null
+              })
+            }).catch(err => console.warn('⚠️  Webhook failed:', err.message));
+          } catch (e) {
+            console.warn('⚠️  Could not send webhook');
+          }
+          
+          newFollowups++;
+
+          // Update metrics
+          const currentHour = new Date().getHours();
+          let slot = 'slot1';
+          if (currentHour >= 14 && currentHour < 18) {
+            slot = 'slot2';
+          } else if (currentHour >= 18) {
+            slot = 'slot3';
+          }
+          updateMetric(slot, 'followups', 1);
+          log(`📊 Metrics: Updated ${slot} followups count`);
+
+          // ✅ NEW: Send individual webhook with client details
+          const threadId = await thread.evaluate(e => e.getAttribute('data-urn') || e.id || `thread-${Date.now()}`);
+          await sendFollowupWebhook(name, 'automation@linkedin.local', threadId);
           namesAlreadyContacted.add(name);
           followups.sent.push(name);
           safeSave(args.followups, followups);
         } else {
           log(`   ❌ Failed to send message to: ${name}`);
         }
-      } else {
-        log(`   (Dry-run) Would send follow-up to: ${name}`);
       }
-      
+
       const delay = 3000 + Math.floor(Math.random() * 4000);
       await page.waitForTimeout(delay);
     }
@@ -660,13 +716,15 @@ async function verifyMessageSent(page, expectedMessage) {
       log(`\n⚠️  This was a DRY RUN. Use --confirm=true to actually send messages.`);
     }
 
-    await safeSave(args.followups, followups);
-    await context.close();
-    process.exit(0);
+  await safeSave(args.followups, followups);
+  await context.close();
+  process.exit(0);
 
   } catch (e) {
     console.error("Error:", e);
     await context.close();
+    console.log(`\n✅ Step 8 Complete - ${newFollowups} follow-ups sent`);
+
     process.exit(1);
   }
 })();

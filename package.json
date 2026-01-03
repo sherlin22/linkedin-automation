@@ -14,8 +14,10 @@
     "dotenv": "^17.2.3",
     "fs-extra": "^11.3.2",
     "googleapis": "^164.0.0",
+    "lucide-react": "^0.556.0",
     "minimist": "^1.2.8",
-    "openai": "^6.5.0"
+    "openai": "^6.5.0",
+    "recharts": "^3.5.1"
   },
   "devDependencies": {
     "playwright": "^1.56.1"

@@ -1,7 +1,0 @@
-import { CodeFixes } from "@/components/CodeFixes";
-
-const Fixes = () => {
-  return <CodeFixes />;
-};
-
-export default Fixes;
