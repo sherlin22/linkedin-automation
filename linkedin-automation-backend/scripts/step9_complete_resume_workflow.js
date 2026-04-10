@@ -164,23 +164,30 @@ function organizeResumeFile(fileInfo, isReadable) {
   const readableDir = path.join(baseDir, 'readable');
   const unreadableDir = path.join(baseDir, 'unreadable');
   
-  if (!fs.existsSync(readableDir)) fs.mkdirSync(readableDir, { recursive: true });
-  if (!fs.existsSync(unreadableDir)) fs.mkdirSync(unreadableDir, { recursive: true });
+  // ✅ NO LOCAL STORAGE - Only Google Drive
+  // Resume will be stored in Google Drive only
   
   const sourcePath = fileInfo.localPath;
-  const targetDir = isReadable ? readableDir : unreadableDir;
-  const targetPath = path.join(targetDir, fileInfo.fileName);
+  const category = isReadable ? 'readable' : 'unreadable';
   
+  log(`   📁 Category: ${category.toUpperCase()} (Google Drive only - No local storage)`);
+  
+  return {
+    ...fileInfo,
+    localPath: sourcePath,  // Keep temp path for processing only
+    category: category
+  };
+}
+
+// Helper: Delete local file after successful Drive upload
+function deleteLocalFile(filePath) {
   try {
-    fs.renameSync(sourcePath, targetPath);
-    return {
-      ...fileInfo,
-      localPath: targetPath,
-      category: isReadable ? 'readable' : 'unreadable'
-    };
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      log(`   🗑️  Local file deleted: ${filePath}`);
+    }
   } catch (error) {
-    log(`   ❌ Failed to organize: ${error.message}`);
-    return fileInfo;
+    log(`   ⚠️  Failed to delete local file: ${error.message}`);
   }
 }
 
@@ -234,42 +241,131 @@ async function findLinkedInAttachments(page) {
   
   await page.waitForTimeout(2000);
   
-  const attachments = await page.evaluate(() => {
-    const results = [];
-    const allElements = document.querySelectorAll('*');
+  // First, let's see what's actually in the message area
+  const pageInfo = await page.evaluate(() => {
+    const msgList = document.querySelector('.msg-s-message-list__list');
+    const allText = document.body.innerText;
     
-    allElements.forEach(el => {
-      const text = (el.innerText || el.textContent || '').trim();
-      
-      const hasFilePattern = /\.(pdf|doc|docx)/i.test(text);
-      const hasSizePattern = /\d+\s*(KB|MB|bytes)/i.test(text);
-      const hasDownloadText = /download/i.test(text);
-      
-      if (hasFilePattern && (hasSizePattern || hasDownloadText)) {
-        if (text.length < 300) {
-          const hasButton = el.querySelector('button, a[download]') !== null;
-          
-          if (hasButton || hasDownloadText) {
-            results.push({
-              type: 'file-with-size',
-              text: text.substring(0, 100),
-              hasButton: hasButton,
-              visible: el.offsetParent !== null
-            });
-          }
-        }
+    // Check for any PDF/Resume mentions
+    const pdfMentions = allText.match(/resume|cv|curriculum|\.pdf|download/gi) || [];
+    
+    // Check for attachment elements
+    const attachmentElements = document.querySelectorAll('[class*="attachment"]');
+    const attachmentCount = attachmentElements.length;
+    
+    // Check for download buttons
+    const downloadBtns = document.querySelectorAll('.msg-s-event-listitem__download-attachment-button, button[aria-label*="download" i]');
+    
+    // Get the last few message elements
+    const recentMessages = [];
+    const msgItems = document.querySelectorAll('.msg-s-event-listitem__content, [class*="msg-s-event"]');
+    msgItems.forEach((item, i) => {
+      if (i >= msgItems.length - 5) {
+        recentMessages.push({
+          text: item.innerText?.substring(0, 200) || '',
+          html: item.innerHTML?.substring(0, 300) || ''
+        });
       }
     });
     
-    return results;
+    return {
+      hasMessageList: !!msgList,
+      pdfMentions: [...new Set(pdfMentions)].slice(0, 10),
+      attachmentElementCount: attachmentCount,
+      downloadButtonCount: downloadBtns.length,
+      recentMessages: recentMessages,
+      totalMessageItems: msgItems.length
+    };
   });
   
-  log(`   📊 Detection results: ${attachments.length} potential attachment(s)`);
-  if (attachments.length > 0) {
-    attachments.forEach((att, i) => {
-      log(`      [${i+1}] Type: ${att.type}, Text: "${att.text}"`);
-    });
+  console.log(`   🔎 Page Info:`);
+  console.log(`      - Total message items: ${pageInfo.totalMessageItems}`);
+  console.log(`      - PDF/CV mentions: ${pageInfo.pdfMentions.join(', ') || 'none'}`);
+  console.log(`      - Download buttons found: ${pageInfo.downloadButtonCount}`);
+  
+  if (pageInfo.pdfMentions.length === 0) {
+    console.log(`   ⚠️  No resume/CV/PDF keywords found in conversation`);
   }
+  
+  // Use the exact HTML structure provided by user
+  const attachments = await page.evaluate(() => {
+    const results = [];
+    
+    // Look for the exact attachment button structure
+    const attachmentButtons = document.querySelectorAll('.msg-s-event-listitem__download-attachment-button');
+    
+    attachmentButtons.forEach(btn => {
+      if (btn.offsetParent === null) return; // Skip hidden elements
+      
+      // Extract filename
+      const filenameEl = btn.querySelector('.ui-attachment__filename');
+      const filename = filenameEl ? filenameEl.innerText.trim() : '';
+      
+      // Extract filesize
+      const filesizeEl = btn.querySelector('.ui-attachment__filesize');
+      const filesize = filesizeEl ? filesizeEl.innerText.trim() : '';
+      
+      // Check if it's a PDF
+      const isPDF = btn.classList.contains('ui-attachment--pdf') || filename.toLowerCase().endsWith('.pdf');
+      
+      if (filename && (filesize || filename.toLowerCase().endsWith('.pdf'))) {
+        results.push({
+          type: 'linkedin-attachment',
+          filename: filename,
+          filesize: filesize,
+          isPDF: isPDF,
+          text: `${filename} ${filesize}`.trim(),
+          button: btn
+        });
+      }
+    });
+    
+    // Fallback: Look for any download buttons with PDF context
+    if (results.length === 0) {
+      document.querySelectorAll('button').forEach(btn => {
+        const ariaLabel = btn.getAttribute('aria-label') || '';
+        const btnText = btn.innerText || '';
+        
+        // Look for download button
+        if (/download/i.test(ariaLabel + btnText)) {
+          const parent = btn.closest('[class*="attachment"]') || btn.closest('[class*="event"]') || btn.parentElement;
+          if (parent) {
+            const text = parent.innerText || '';
+            const fileMatch = text.match(/([A-Za-z0-9\s\-_]+\.(pdf|doc|docx))/i);
+            const sizeMatch = text.match(/(\d+\s*(KB|MB|GB))/i);
+            
+            if (fileMatch) {
+              results.push({
+                type: 'download-button',
+                filename: fileMatch[1],
+                filesize: sizeMatch ? sizeMatch[1] : '',
+                text: `${fileMatch[1]} ${sizeMatch ? sizeMatch[1] : ''}`.trim(),
+                button: btn
+              });
+            }
+          }
+        }
+      });
+    }
+    
+    // Deduplicate
+    const unique = [];
+    const seen = new Set();
+    results.forEach(r => {
+      const key = r.filename.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(r);
+      }
+    });
+    
+    return unique;
+  });
+  
+  log(`   📊 Detection results: ${attachments.length} attachment(s)`);
+  attachments.forEach((att, i) => {
+    log(`      [${i+1}] ${att.filename} (${att.filesize})`);
+  });
   
   return attachments;
 }
@@ -280,61 +376,47 @@ async function downloadLinkedInFile(page, name, attachmentInfo) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
     log(`   🚀 Attempting download...`);
-    log(`   📝 Strategy: ${attachmentInfo.type}`);
+    log(`   📄 File: ${attachmentInfo.filename} (${attachmentInfo.filesize})`);
     
     const downloadPromise = page.waitForEvent('download', { timeout: 30000 });
     
-    const clicked = await page.evaluate(() => {
-      const selectors = [
-        'button[aria-label*="Download"]',
-        'button[aria-label*="download"]',
-        '.msg-s-event-listitem__download-attachment-button',
-        'a[download]'
-      ];
-      
-      for (const sel of selectors) {
-        const elements = document.querySelectorAll(sel);
-        for (const el of elements) {
-          if (el.offsetParent !== null) {
-            try {
-              el.click();
-              return true;
-            } catch (e) {
-              continue;
-            }
-          }
-        }
+    // Click the exact button structure
+    let clicked = false;
+    
+    if (attachmentInfo.button) {
+      try {
+        await attachmentInfo.button.click();
+        clicked = true;
+        log('   ✓ Clicked attachment button');
+      } catch (e) {
+        log(`   ⚠️  Direct click failed: ${e.message}`);
       }
-      
-      const allButtons = document.querySelectorAll('button');
-      for (const btn of allButtons) {
-        const parent = btn.closest('[class*="msg-s-event"]');
-        if (parent) {
-          const text = parent.innerText || '';
-          if (/\.(pdf|docx?)/i.test(text) && /\d+\s*(KB|MB)/i.test(text)) {
-            const ariaLabel = btn.getAttribute('aria-label') || '';
-            const btnText = btn.innerText || '';
-            if (/download/i.test(ariaLabel + btnText)) {
-              try {
-                btn.click();
-                return true;
-              } catch (e) {
-                continue;
-              }
-            }
-          }
+    }
+    
+    // Fallback: Find and click by selectors
+    if (!clicked) {
+      clicked = await page.evaluate(() => {
+        // Try the specific class
+        const btn = document.querySelector('.msg-s-event-listitem__download-attachment-button');
+        if (btn) {
+          try {
+            btn.click();
+            return true;
+          } catch (e) {}
         }
-      }
+        return false;
+      });
       
-      return false;
-    });
+      if (clicked) {
+        log('   ✓ Clicked via selector fallback');
+      }
+    }
     
     if (!clicked) {
-      log(`   ❌ No download button found`);
+      log(`   ❌ Could not click download button`);
       return null;
     }
     
-    log('   ✓ Clicked download button');
     log('   ⏳ Waiting for download to start...');
     
     const download = await downloadPromise.catch((err) => {
@@ -381,7 +463,7 @@ async function downloadLinkedInFile(page, name, attachmentInfo) {
   }
 }
 
-// MAIN WORKFLOW
+// MAIN WORKFLOW - FIXED (No variable redeclaration)
 async function processResumeWorkflow(page, fileInfo, clientName, threadId) {
   const result = {
     clientName,
@@ -411,11 +493,22 @@ async function processResumeWorkflow(page, fileInfo, clientName, threadId) {
     const readable = await isResumeReadable(fileInfo.localPath);
     result.stages.readable = readable;
     
-    if (!readable) {
+    // ✅ Organize file locally (both readable and unreadable)
+    let organized = organizeResumeFile(fileInfo, readable);
+    result.localPath = organized.localPath;
+    
+    // ✅ Update state BEFORE drive upload
+    if (readable) {
+      log(`   ✅ Resume is readable`);
+      if (!RESUME_STATE.readable) RESUME_STATE.readable = [];
+      RESUME_STATE.readable.push({
+        name: clientName,
+        fileName: fileInfo.fileName,
+        localPath: organized.localPath,
+        timestamp: fileInfo.timestamp
+      });
+    } else {
       log(`   ❌ Resume NOT readable`);
-      const organized = organizeResumeFile(fileInfo, false);
-      result.localPath = organized.localPath;
-      
       if (!RESUME_STATE.unreadable) RESUME_STATE.unreadable = [];
       RESUME_STATE.unreadable.push({
         name: clientName,
@@ -423,39 +516,36 @@ async function processResumeWorkflow(page, fileInfo, clientName, threadId) {
         localPath: organized.localPath,
         timestamp: fileInfo.timestamp
       });
-      saveResumeState();
-      
-      log(`\n❌ WORKFLOW INCOMPLETE: Resume unreadable`);
-      return result;
     }
-    
-    log(`   ✅ Resume is readable`);
-    const organized = organizeResumeFile(fileInfo, true);
-    result.localPath = organized.localPath;
-    
-    if (!RESUME_STATE.readable) RESUME_STATE.readable = [];
-    RESUME_STATE.readable.push({
-      name: clientName,
-      fileName: fileInfo.fileName,
-      localPath: organized.localPath,
-      timestamp: fileInfo.timestamp
-    });
     saveResumeState();
     
-    log(`\n2️⃣  GOOGLE DRIVE UPLOAD`);
-    const drive = await uploadToGoogleDrive(
-      organized.localPath, 
-      fileInfo.fileName, 
-      clientName, 
-      true
+    // ✅ ALWAYS upload to Drive regardless of readability
+    log(`\n2️⃣  GOOGLE DRIVE UPLOAD (${readable ? 'Readable' : 'Unreadable'})`);
+    let drive = await uploadToGoogleDrive(
+      organized.localPath,
+      fileInfo.fileName,
+      clientName,
+      readable  // ✅ Pass correct boolean
     );
     
     if (drive?.success) {
       result.stages.driveUploaded = true;
       result.driveInfo = drive;
-      log(`   ✅ Drive: ${drive.driveLink}`);
+      log(`   ✅ Drive (${readable ? 'Readable' : 'Unreadable'}): ${drive.driveLink}`);
+      log(`   📍 Folder: LinkedIn_Automation/Resumes/${readable ? 'Readable' : 'Unreadable'}/${drive.driveDate}/`);
+      
+      // ✅ DON'T DELETE YET - Keep file for parsing (steps 3-6)
+      // File will be deleted at the end of the workflow
+      // deleteLocalFile(organized.localPath); // FILE PRESERVATION - Keep files locally
     } else {
       log(`   ⚠️  Drive upload skipped or failed`);
+    }
+    
+    // ✅ Only continue processing if readable
+    if (!readable) {
+      log(`\n❌ WORKFLOW INCOMPLETE: Resume unreadable`);
+      log(`${"=".repeat(60)}\n`);
+      return result;
     }
     
     log(`\n3️⃣  EMAIL EXTRACTION`);
@@ -487,8 +577,8 @@ async function processResumeWorkflow(page, fileInfo, clientName, threadId) {
     
     log(`\n5️⃣  AI CRITIQUE GENERATION`);
     const critique = await generateResumeCritique(
-      organized.localPath, 
-      fileInfo.extension, 
+      organized.localPath,
+      fileInfo.extension,
       clientName
     );
     
@@ -534,6 +624,9 @@ async function processResumeWorkflow(page, fileInfo, clientName, threadId) {
     log(`${"=".repeat(60)}\n`);
     
     return result;
+    // Delete local file after all processing is complete
+    // deleteLocalFile(organized.localPath); // FILE PRESERVATION - Keep files locally
+
     
   } catch (error) {
     log(`\n❌ WORKFLOW ERROR: ${error.message}`);
@@ -668,6 +761,17 @@ async function processResumeWorkflow(page, fileInfo, clientName, threadId) {
 
       const attachments = await findLinkedInAttachments(page);
       
+      // Now validate name - but proceed if attachments exist regardless of name format
+      if (!isValidCandidateName(name)) {
+        if (attachments.length > 0) {
+          log(`   ⚠️  Name format unusual: "${name}" - but attachments found, proceeding...`);
+        } else {
+          log(`   ⚠️  Invalid name: "${name}" - no attachments, skipping`);
+          processed++;
+          continue;
+        }
+      }
+      
       if (attachments.length > 0) {
         log(`   ✅ Found ${attachments.length} attachment(s)`);
         foundAttachments++;
@@ -712,13 +816,50 @@ async function processResumeWorkflow(page, fileInfo, clientName, threadId) {
                 workflowSuccess++;
                 
                 // ✅ WEBHOOK 2: Log draft creation
-                if (workflowResult.stages.draftCreated) {
-                  workflowSuccess++;
-                  if (isValidCandidateName(name)) {
-                    await sendDraftCreatedWebhook(name, 'Success');
-                  } else {
-                    log(`   ⚠️  Invalid name: "${name}" - draft webhook skipped`);
+                if (isValidCandidateName(name)) {
+                  await sendDraftCreatedWebhook(name, 'Success');
+                } else {
+                  log(`   ⚠️  Invalid name: "${name}" - draft webhook skipped`);
+                }
+                
+                // ✅ SAVE DRAFT-LINKEDIN MAPPING
+                // After creating a Gmail draft, save the mapping so we can later
+                // track when the draft is sent and notify on LinkedIn
+                try {
+                  const mappingFile = path.join(process.cwd(), 'draft_linkedin_mapping.json');
+                  let mappingData = [];
+                  
+                  // Read existing mapping file
+                  if (fs.existsSync(mappingFile)) {
+                    try {
+                      mappingData = JSON.parse(fs.readFileSync(mappingFile, 'utf8'));
+                      if (!Array.isArray(mappingData)) mappingData = [];
+                    } catch (e) {
+                      mappingData = [];
+                    }
                   }
+                  
+                  // Get first name (first word of the name)
+                  const firstName = name.split(' ')[0];
+                  
+                  // Create new mapping record
+                  const mappingRecord = {
+                    draftId: workflowResult.draftInfo.draftId,
+                    linkedinName: name,
+                    linkedinThreadId: threadId,
+                    clientEmail: workflowResult.clientEmail || null,
+                    firstName: firstName,
+                    status: 'draft_pending',
+                    createdAt: new Date().toISOString()
+                  };
+                  
+                  mappingData.push(mappingRecord);
+                  
+                  // Save back to file
+                  fs.writeFileSync(mappingFile, JSON.stringify(mappingData, null, 2), 'utf8');
+                  log(`   📝 Saved draft-LinkedIn mapping: ${name} -> draft ${workflowResult.draftInfo.draftId}`);
+                } catch (mappingError) {
+                  log(`   ⚠️  Failed to save draft mapping: ${mappingError.message}`);
                 }
               }
             } else {

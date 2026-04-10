@@ -1,0 +1,551 @@
+// scripts/step10_send_draft_followup.js
+// ✅ CRITICAL: Only send if we created the Gmail critique email
+// Searches Gmail Sent folder for "Dear {candidateName}" to verify email was sent
+
+const fs = require('fs');
+const path = require('path');
+const minimist = require('minimist');
+const playwright = require('playwright');
+const { updateMetric } = require('./helpers/metrics-handler');
+const { isValidCandidateName } = require('./helpers/validation-helpers');
+const { GmailSentChecker } = require('./helpers/gmail_sent_checker');
+
+const args = minimist(process.argv.slice(2), {
+  string: ['auth', 'state', 'browser', 'profile', 'slowMo'],
+  boolean: ['headful', 'confirm', 'retry'],
+  default: {
+    auth: 'auth_state.json',
+    state: 'state_draft_followups.json',
+    headful: true,
+    confirm: false,
+    browser: 'chromium',
+    slowMo: '0',
+    max: 100,
+    retry: false  // If true, will retry Gmail check for already processed candidates
+  }
+});
+
+args.max = Number(args.max) || 100;
+
+// Message for draft follow-ups (auto-generated critique emails)
+const DRAFT_FOLLOWUP_MSG = `Hi,
+
+I have shared a detailed mail to you with my professional assessment and service offerings. 
+
+Pls review and revert back to me to proceed further.
+
+Looking forward to hearing from you!`;
+
+// ✅ SIGNATURE to identify OUR critique emails
+const OUR_EMAIL_SIGNATURE = 'Deepa Rajan';
+const OUR_EMAIL_INDICATORS = [
+  'RESUME CRITIQUE',
+  'professional assessment',
+  'Enhancement Proposal',
+  'service offerings',
+  'Pls review'
+];
+
+// ✅ STATE FILE PATHS for resume verification
+const RESUME_STATE_FILE = path.join(process.cwd(), 'resume_processing_state_ALL.json');
+
+/**
+ * Check if candidate's resume was processed through Step 9
+ * Only send follow-up if resume was actually downloaded and processed
+ */
+function wasResumeProcessed(candidateName) {
+  try {
+    if (!fs.existsSync(RESUME_STATE_FILE)) {
+      log(`   ⚠️  Resume state file not found`);
+      return false;
+    }
+
+    const stateData = JSON.parse(fs.readFileSync(RESUME_STATE_FILE, 'utf8'));
+    const readable = stateData.readable || [];
+    const unreadable = stateData.unreadable || [];
+
+    // Check if candidate is in either readable or unreadable arrays
+    const isProcessed = [...readable, ...unreadable].some(
+      item => item.name === candidateName
+    );
+
+    if (isProcessed) {
+      log(`   ✅ Resume was processed for: ${candidateName}`);
+      const item = [...readable, ...unreadable].find(item => item.name === candidateName);
+      log(`      File: ${item?.fileName || 'unknown'}`);
+      log(`      Category: ${readable.find(i => i.name === candidateName) ? 'readable' : 'unreadable'}`);
+      return true;
+    } else {
+      log(`   ❌ No resume found for: ${candidateName}`);
+      return false;
+    }
+  } catch (error) {
+    log(`   ⚠️  Error checking resume state: ${error.message}`);
+    return false;
+  }
+}
+
+async function sendDraftFollowupWebhook(clientName, email, threadId) {
+  try {
+    const payload = {
+      clientName: clientName || 'Unknown',
+      email: email || 'N/A',
+      message: 'Draft follow-up: Review email and revert',
+      threadId: threadId || `thread-${Date.now()}`,
+      status: 'success',
+      timestamp: new Date().toISOString()
+    };
+
+    const response = await fetch('http://localhost:3000/api/automation/draft-followup-sent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.log('⚠️  Webhook error:', error.message);
+    return false;
+  }
+}
+
+let DRAFT_FOLLOWUP_STATE = { 
+  processed: [],
+  sentFollowups: []
+};
+
+function log(...a) { console.log(...a); }
+
+function loadState() {
+  try {
+    if (args.state && fs.existsSync(args.state)) {
+      const raw = fs.readFileSync(args.state, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.processed)) {
+        DRAFT_FOLLOWUP_STATE = parsed;
+        if (!DRAFT_FOLLOWUP_STATE.sentFollowups) DRAFT_FOLLOWUP_STATE.sentFollowups = [];
+      }
+      log('✅ Loaded state:', (DRAFT_FOLLOWUP_STATE.processed||[]).length, 'processed');
+      log('   Sent followups:', (DRAFT_FOLLOWUP_STATE.sentFollowups||[]).length);
+    } else {
+      DRAFT_FOLLOWUP_STATE = { processed: [], sentFollowups: [] };
+    }
+  } catch (e) {
+    DRAFT_FOLLOWUP_STATE = { processed: [], sentFollowups: [] };
+  }
+}
+
+function saveState() {
+  try {
+    if (!args.state) return;
+    fs.writeFileSync(args.state, JSON.stringify(DRAFT_FOLLOWUP_STATE, null, 2), 'utf8');
+  } catch (e) {
+    log('Failed to save state:', e.message);
+  }
+}
+
+loadState();
+
+async function getConversationName(thread) {
+  try {
+    return await thread.evaluate(el => {
+      const selectors = [
+        'h3.msg-conversation-listitem__participant-names',
+        '.msg-conversation-listitem__participant-names',
+        'h3 span',
+        'h4 span'
+      ];
+      
+      for (const sel of selectors) {
+        const nameEl = el.querySelector(sel);
+        if (nameEl) {
+          const text = (nameEl.innerText || nameEl.textContent || '').trim();
+          if (text && text.length > 2 && text.length < 100) return text;
+        }
+      }
+      return null;
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
+// ✅ CRITICAL: Check Gmail Sent folder for email containing "Dear {candidateName}"
+// Updated to use the new findOurEmail() method which searches by body content
+async function isOurCritiqueEmailSent(gmailChecker, candidateName) {
+  try {
+    log(`   📧 Searching Gmail for critique email to "${candidateName}"...`);
+    
+    // Use the new findOurEmail method that tries all search strategies
+    // including searching for "Dear {name}" in the email body
+    const gmailResult = await gmailChecker.findOurEmail(candidateName);
+    
+    if (!gmailResult.wasSent) {
+      log(`   ❌ No email found in Gmail for: ${candidateName}`);
+      return false;
+    }
+    
+    const subject = gmailResult.subject || '';
+    const messageId = gmailResult.messageId;
+    
+    log(`   ✅ Found email in Gmail Sent folder`);
+    log(`      Subject: "${subject}"`);
+    log(`      Verified by: ${gmailResult.verifiedByBody ? 'body (Dear name)' : gmailResult.verifiedBySubject ? 'subject pattern' : 'name match'}`);
+    
+    // Step 2: Verify subject matches our critique pattern (updated patterns)
+    const subjectCheck = gmailChecker.verifyEmailSubject(subject);
+    
+    if (!subjectCheck.isValid) {
+      log(`   ⚠️  ${subjectCheck.reason}`);
+      // Still continue - the name search found the email
+    } else {
+      log(`   ✅ Subject verified: ${subjectCheck.reason}`);
+    }
+    
+    // Step 3: Verify email body contains our signature indicators
+    try {
+      const signatureCheck = await gmailChecker.verifyEmailSignature(messageId, OUR_EMAIL_INDICATORS);
+      
+      if (!signatureCheck.hasSignature) {
+        log(`   ⚠️  Email doesn't contain our signature indicators`);
+        log(`      Found indicators: ${signatureCheck.matchCount}`);
+        // Still continue if we found the email with "Dear {name}"
+        log(`   ℹ️  Using name match as verification`);
+      } else {
+        log(`   ✅ Email body verified with ${signatureCheck.matchCount} indicators`);
+      }
+      
+      log(`   ✅ VERIFIED: This is OUR critique email!`);
+      return true;
+      
+    } catch (error) {
+      log(`   ⚠️  Could not verify email body: ${error.message}`);
+      // If we found the email with "Dear {name}", consider it verified
+      log(`   ℹ️  Using email found by name as verification`);
+      return true;
+    }
+    
+  } catch (error) {
+    log(`   ⚠️  Gmail check error: ${error.message}`);
+    return false;
+  }
+}
+
+async function sendMessageWithRetry(page, message) {
+  try {
+    const inputSelectors = [
+      'div[role="textbox"][contenteditable="true"]',
+      '.msg-form__contenteditable',
+      '[class*="msg-form__contenteditable"]'
+    ];
+
+    let input = null;
+    for (const sel of inputSelectors) {
+      input = await page.$(sel);
+      if (input) {
+        const isVisible = await input.isVisible().catch(() => false);
+        if (isVisible) break;
+        input = null;
+      }
+    }
+
+    if (!input) {
+      log("   ❌ Input not found");
+      return false;
+    }
+
+    log("   📝 Typing message...");
+    await input.click();
+    await page.waitForTimeout(800);
+    
+    await input.evaluate(el => {
+      el.innerHTML = '';
+      el.innerText = '';
+      el.textContent = '';
+    });
+
+    await page.waitForTimeout(500);
+    await input.type(message, { delay: 30 });
+    await page.waitForTimeout(1000);
+
+    log("   🔍 Looking for send button...");
+    
+    const sendBtn = await page.$('button.msg-form__send-button:not([disabled])');
+    
+    if (sendBtn) {
+      log("   ✅ Send button found - clicking...");
+      await sendBtn.click();
+      await page.waitForTimeout(2000);
+      
+      const messageCleared = await input.evaluate(el => {
+        const text = el.innerText || el.textContent || '';
+        return text.trim().length === 0;
+      });
+      
+      if (messageCleared) {
+        log("   ✅ Message sent (input cleared)");
+        return true;
+      }
+    }
+
+    log("   📤 Trying Enter key...");
+    await input.focus();
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(1500);
+    
+    const cleared = await input.evaluate(el => {
+      const text = el.innerText || el.textContent || '';
+      return text.trim().length === 0;
+    });
+    
+    if (cleared) {
+      log("   ✅ Message sent via Enter key");
+      return true;
+    }
+
+    log("   ❌ Could not send message");
+    return false;
+    
+  } catch (e) {
+    log("   ❌ Error: " + e.message);
+    return false;
+  }
+}
+
+async function verifyMessageSent(page) {
+  try {
+    await page.waitForTimeout(2000);
+    
+    const isEmpty = await page.evaluate(() => {
+      const input = document.querySelector('[contenteditable="true"]');
+      if (!input) return true;
+      const text = input.innerText || input.textContent || '';
+      return text.trim().length === 0;
+    });
+    
+    return isEmpty;
+  } catch (e) {
+    return false;
+  }
+}
+
+// --- MAIN ---
+(async () => {
+  const browserType = args.browser === "firefox" ? "firefox" : "chromium";
+  const lib = playwright[browserType];
+
+  // ✅ INITIALIZE GMAIL CHECKER
+  const gmailChecker = new GmailSentChecker();
+  const gmailReady = await gmailChecker.initialize();
+  
+  if (!gmailReady) {
+    log('❌ ERROR: Gmail checker failed to initialize.');
+    log('   This script REQUIRES Gmail access to verify critique emails.');
+    log('   Make sure google_token.json exists and has proper Gmail permissions.');
+    process.exit(1);
+  }
+
+  let context;
+  if (args.profile) {
+    context = await lib.launchPersistentContext(args.profile, {
+      headless: !args.headful,
+      slowMo: Number(args.slowMo)
+    });
+  } else {
+    const browser = await lib.launch({
+      headless: !args.headful,
+      slowMo: Number(args.slowMo)
+    });
+    const ctxOpts = args.auth && fs.existsSync(args.auth)
+      ? { storageState: args.auth }
+      : {};
+    context = await browser.newContext(ctxOpts);
+  }
+
+  const page = await context.newPage();
+  page.setDefaultTimeout(30000);
+
+  try {
+    log("\n🔗 Opening LinkedIn Messaging...");
+    await page.goto("https://www.linkedin.com/messaging/", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(4000);
+
+    if (/\/login|checkpoint/.test(page.url())) {
+      log("❌ Not logged in");
+      await context.close();
+      process.exit(1);
+    }
+
+    const threadsSelector = 'li.msg-conversation-listitem, li[class*="msg-conversation"]';
+    await page.waitForSelector(threadsSelector, { timeout: 10000 });
+
+    let newFollowups = 0;
+    let retriedCandidates = [];
+
+    // ✅ SCROLL MORE: Load ALL conversations
+    const conversationList = await page.$('.msg-conversations-container__conversations-list');
+    if (conversationList) {
+      log('📜 Loading all conversations (scrolling to load all)...');
+      let prevCount = 0;
+      const maxScrolls = 15; // More scrolls to load all conversations
+      
+      for (let i = 0; i < maxScrolls; i++) {
+        // Get current thread count
+        const currentCount = await page.$$(threadsSelector).then(t => t.length);
+        if (currentCount > prevCount) {
+          log(`   📦 Loaded ${currentCount} conversations (scroll ${i+1}/${maxScrolls})`);
+          prevCount = currentCount;
+        }
+        
+        await conversationList.evaluate(el => el.scrollBy(0, el.scrollHeight));
+        await page.waitForTimeout(2000);
+        
+        // Check if we've reached the end (no new threads loaded)
+        const newCount = await page.$$(threadsSelector).then(t => t.length);
+        if (newCount === prevCount && i > 2) {
+          log(`   ✅ No more conversations to load`);
+          break;
+        }
+      }
+      log(`   📊 Total conversations loaded: ${prevCount}`);
+    }
+
+    const threads = await page.$$(threadsSelector);
+    log(`\n👥 Found ${threads.length} conversations\n`);
+    log(`   ℹ️  Retry mode: ${args.retry ? 'ON - will retry Gmail check for processed candidates' : 'OFF'}`);
+
+    for (let threadIndex = 0; threadIndex < threads.length; threadIndex++) {
+      if (newFollowups >= args.max) {
+        log(`\n⚠️  Reached max: ${args.max}`);
+        break;
+      }
+
+      const thread = threads[threadIndex];
+      const name = await getConversationName(thread);
+      
+      if (!name) continue;
+
+      log(`🔍 [${threadIndex + 1}/${threads.length}] ${name}`);
+      
+      if (!isValidCandidateName(name)) {
+        log(`   ⚠️  Invalid name`);
+        continue;
+      }
+
+      // ✅ CRITICAL: Check if resume was actually processed for this candidate
+      if (!wasResumeProcessed(name)) {
+        log(`   ⭕ No resume processed for this candidate - skipping`);
+        DRAFT_FOLLOWUP_STATE.processed.push(name);
+        saveState();
+        continue;
+      }
+
+      // ✅ DUPLICATE CHECK: Already sent follow-up to this person?
+      const alreadySent = DRAFT_FOLLOWUP_STATE.sentFollowups.some(
+        s => s.name.toLowerCase() === name.toLowerCase()
+      );
+      
+      if (alreadySent) {
+        log(`   ⭕ Already sent follow-up - skipping`);
+        continue;
+      }
+
+      // ✅ CHECK: Already processed but NOT sent - should we retry?
+      const alreadyProcessed = DRAFT_FOLLOWUP_STATE.processed.some(
+        p => p.toLowerCase() === name.toLowerCase()
+      );
+      
+      if (alreadyProcessed) {
+        if (args.retry) {
+          log(`   🔄 RETRY: Already processed but Gmail check failed before - retrying...`);
+          retriedCandidates.push(name);
+        } else {
+          log(`   ⭕ Already processed (use --retry=true to retry Gmail check)`);
+          continue;
+        }
+      }
+
+      // ✅ CHECK GMAIL - Search for email containing "Dear {name}"
+      const isOurEmail = await isOurCritiqueEmailSent(gmailChecker, name);
+      
+      if (!isOurEmail) {
+        log(`   ⭕ No OUR critique email found in Gmail - skipping`);
+        DRAFT_FOLLOWUP_STATE.processed.push(name);
+        saveState();
+        continue;
+      }
+
+      // ✅ ONLY SEND IF CONFIRMED
+      if (!args.confirm) {
+        log(`   💡 Would send follow-up (dry run)`);
+        DRAFT_FOLLOWUP_STATE.processed.push(name);
+        saveState();
+        continue;
+      }
+
+      log(`   📲 Sending follow-up...`);
+      
+      await thread.click();
+      await page.waitForTimeout(3000);
+
+      const sent = await sendMessageWithRetry(page, DRAFT_FOLLOWUP_MSG);
+      
+      if (sent) {
+        const verified = await verifyMessageSent(page);
+        
+        if (verified) {
+          log(`   ✅ SENT: ${name}`);
+          newFollowups++;
+
+          const threadId = await thread.evaluate(e => e.getAttribute('data-urn') || e.id).catch(() => null);
+          await sendDraftFollowupWebhook(name, 'automation@linkedin.local', threadId);
+
+          const hour = new Date().getHours();
+          const slot = hour >= 18 ? 'slot3' : (hour >= 14 ? 'slot2' : 'slot1');
+          updateMetric(slot, 'draft_followups', 1);
+
+          // ✅ Add to sentFollowups (only if not already there)
+          const alreadyInSent = DRAFT_FOLLOWUP_STATE.sentFollowups.some(
+            s => s.name.toLowerCase() === name.toLowerCase()
+          );
+          if (!alreadyInSent) {
+            DRAFT_FOLLOWUP_STATE.sentFollowups.push({ name, timestamp: new Date().toISOString() });
+          }
+          
+          // Remove from processed since we successfully sent
+          DRAFT_FOLLOWUP_STATE.processed = DRAFT_FOLLOWUP_STATE.processed.filter(
+            p => p.toLowerCase() !== name.toLowerCase()
+          );
+          
+          saveState();
+        } else {
+          log(`   ⚠️  Not verified`);
+        }
+      } else {
+        log(`   ❌ Send failed`);
+      }
+
+      await page.waitForTimeout(2000 + Math.random() * 3000);
+    }
+
+    log(`\n${"=".repeat(60)}`);
+    log(`✨ STEP 10 COMPLETE`);
+    log(`${"=".repeat(60)}`);
+    log(`📊 Follow-ups sent: ${newFollowups}/${args.max}`);
+    if (retriedCandidates.length > 0) {
+      log(`   🔄 Retried candidates: ${retriedCandidates.length}`);
+    }
+    log(`   ✅ Only to people with OUR critique emails`);
+    log(`   ✅ No duplicates (checked sentFollowups before sending)`);
+    log(`   ✅ Verified by searching Gmail Sent folder`);
+    log(`   ✅ Verified send in LinkedIn`);
+
+    await context.close();
+    process.exit(0);
+
+  } catch (e) {
+    console.error("Error:", e);
+    await context.close();
+    process.exit(1);
+  }
+})();

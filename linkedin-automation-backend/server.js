@@ -1,10 +1,15 @@
-// server.js - UPDATED VERSION WITH CANDIDATE WORKFLOW LOGGING
+// server.js - With Pino Logger
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const fs = require('fs');
 const { CandidateWorkflowLogger } = require('./scripts/helpers/candidate-workflow-logger');
+const { logger, createModuleLogger } = require('./logger');
 require('dotenv').config();
+
+// Create module loggers
+const serverLogger = createModuleLogger('server');
+const apiLogger = createModuleLogger('api');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,17 +17,16 @@ const PORT = process.env.PORT || 3000;
 let workflowLogger = null;
 
 async function initializeServer() {
-  console.log('\n🚀 INITIALIZING SERVER');
-  console.log('='.repeat(60));
+  serverLogger.info('Initializing server');
   
   workflowLogger = new CandidateWorkflowLogger();
   const initialized = await workflowLogger.initialize();
   
   if (initialized) {
     await workflowLogger.ensureHeaders();
-    console.log('✅ Candidate Workflow Logger ready\n');
+    serverLogger.info('Candidate Workflow Logger ready');
   } else {
-    console.log('⚠️  Google Sheets not available\n');
+    serverLogger.warn('Google Sheets not available');
   }
 
   startServer();
@@ -34,153 +38,25 @@ function startServer() {
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
   app.use(express.static(path.join(__dirname)));
 
-  // ✅ PROPOSAL SUBMITTED
-  // Called from step7_submit_proposal_loop.js
-  // ✅ IMPROVED server.js
-app.post('/api/automation/proposal-submitted', async (req, res) => {
-  try {
-    const { clientName, threadId } = req.body;
-
-    // ✅ VALIDATE NAME
-    if (!clientName || typeof clientName !== 'string' || clientName.length < 2) {
-      console.warn(`⚠️  Invalid clientName received: ${clientName}`);
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid clientName' 
-      });
-    }
-
-    console.log(`📝 Proposal submitted: ${clientName}`);
-
-    if (workflowLogger) {
-      const result = await workflowLogger.logProposal(clientName, threadId);
-      if (!result.success) {
-        console.warn('⚠️  Sheet logging failed:', result.error);
-      }
-    }
-
-    res.json({
-      success: true,
-      sheetsLogged: workflowLogger ? true : false
-    });
-  } catch (error) {
-    console.error('❌ Error:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.post('/api/automation/followup-sent', async (req, res) => {
-  try {
-    const { clientName, threadId } = req.body;
-
-    // ✅ VALIDATE NAME
-    if (!clientName || typeof clientName !== 'string' || clientName.length < 2) {
-      console.warn(`⚠️  Invalid clientName received: ${clientName}`);
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid clientName' 
-      });
-    }
-
-    console.log(`💬 Follow-up sent: ${clientName}`);
-
-    if (workflowLogger) {
-      const result = await workflowLogger.logFollowup(clientName, threadId);
-      if (!result.success) {
-        console.warn('⚠️  Sheet logging failed:', result.error);
-      }
-    }
-
-    res.json({
-      success: true,
-      sheetsLogged: workflowLogger ? true : false
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.post('/api/automation/resume-downloaded', async (req, res) => {
-  try {
-    const { clientName, resumeStatus, emailId, threadId } = req.body;
-
-    // ✅ VALIDATE NAME
-    if (!clientName || typeof clientName !== 'string' || clientName.length < 2) {
-      console.warn(`⚠️  Invalid clientName received: ${clientName}`);
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid clientName' 
-      });
-    }
-
-    console.log(`📥 Resume downloaded: ${clientName} (${resumeStatus})`);
-
-    if (workflowLogger) {
-      const result = await workflowLogger.logResumeDownload(
-        clientName,
-        resumeStatus,
-        emailId,
-        threadId
-      );
-      if (!result.success) {
-        console.warn('⚠️  Sheet logging failed:', result.error);
-      }
-    }
-
-    res.json({
-      success: true,
-      sheetsLogged: workflowLogger ? true : false
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.post('/api/automation/draft-created', async (req, res) => {
-  try {
-    const { clientName, draftStatus } = req.body;
-
-    // ✅ VALIDATE NAME
-    if (!clientName || typeof clientName !== 'string' || clientName.length < 2) {
-      console.warn(`⚠️  Invalid clientName received: ${clientName}`);
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid clientName' 
-      });
-    }
-
-    console.log(`✉️  Draft created: ${clientName}`);
-
-    if (workflowLogger) {
-      const result = await workflowLogger.logMailDraft(
-        clientName,
-        draftStatus || 'Success'
-      );
-      if (!result.success) {
-        console.warn('⚠️  Sheet logging failed:', result.error);
-      }
-    }
-
-    res.json({
-      success: true,
-      sheetsLogged: workflowLogger ? true : false
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-  // ✅ FOLLOW-UP SENT
-  // Called from step8_followup_message_loop.js
-  app.post('/api/automation/followup-sent', async (req, res) => {
+  // PROPOSAL SUBMITTED
+  app.post('/api/automation/proposal-submitted', async (req, res) => {
     try {
       const { clientName, threadId } = req.body;
 
-      console.log(`💬 Follow-up sent: ${clientName}`);
+      if (!clientName || typeof clientName !== 'string' || clientName.length < 2) {
+        apiLogger.warn({ clientName }, 'Invalid clientName received');
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Invalid clientName' 
+        });
+      }
+
+      apiLogger.info({ clientName, threadId }, 'Proposal submitted');
 
       if (workflowLogger) {
-        const result = await workflowLogger.logFollowup(clientName, threadId);
+        const result = await workflowLogger.logProposal(clientName, threadId);
         if (!result.success) {
-          console.warn('⚠️  Sheet logging failed:', result.error);
+          apiLogger.warn({ error: result.error }, 'Sheet logging failed');
         }
       }
 
@@ -189,18 +65,57 @@ app.post('/api/automation/draft-created', async (req, res) => {
         sheetsLogged: workflowLogger ? true : false
       });
     } catch (error) {
+      apiLogger.error({ error: error.message }, 'Error in proposal-submitted');
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
-  // ✅ RESUME DOWNLOADED
-  // Called from step9_complete_resume_workflow.js
-  // resumeStatus should be "Success/Readable", "Success/Unreadable", or "Failed"
+  // FOLLOW-UP SENT
+  app.post('/api/automation/followup-sent', async (req, res) => {
+    try {
+      const { clientName, threadId } = req.body;
+
+      if (!clientName || typeof clientName !== 'string' || clientName.length < 2) {
+        apiLogger.warn({ clientName }, 'Invalid clientName received');
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Invalid clientName' 
+        });
+      }
+
+      apiLogger.info({ clientName, threadId }, 'Follow-up sent');
+
+      if (workflowLogger) {
+        const result = await workflowLogger.logFollowup(clientName, threadId);
+        if (!result.success) {
+          apiLogger.warn({ error: result.error }, 'Sheet logging failed');
+        }
+      }
+
+      res.json({
+        success: true,
+        sheetsLogged: workflowLogger ? true : false
+      });
+    } catch (error) {
+      apiLogger.error({ error: error.message }, 'Error in followup-sent');
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // RESUME DOWNLOADED
   app.post('/api/automation/resume-downloaded', async (req, res) => {
     try {
       const { clientName, resumeStatus, emailId, threadId } = req.body;
 
-      console.log(`📥 Resume downloaded: ${clientName} (${resumeStatus})`);
+      if (!clientName || typeof clientName !== 'string' || clientName.length < 2) {
+        apiLogger.warn({ clientName }, 'Invalid clientName received');
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Invalid clientName' 
+        });
+      }
+
+      apiLogger.info({ clientName, resumeStatus }, 'Resume downloaded');
 
       if (workflowLogger) {
         const result = await workflowLogger.logResumeDownload(
@@ -210,7 +125,7 @@ app.post('/api/automation/draft-created', async (req, res) => {
           threadId
         );
         if (!result.success) {
-          console.warn('⚠️  Sheet logging failed:', result.error);
+          apiLogger.warn({ error: result.error }, 'Sheet logging failed');
         }
       }
 
@@ -219,17 +134,25 @@ app.post('/api/automation/draft-created', async (req, res) => {
         sheetsLogged: workflowLogger ? true : false
       });
     } catch (error) {
+      apiLogger.error({ error: error.message }, 'Error in resume-downloaded');
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
-  // ✅ GMAIL DRAFT CREATED
-  // Called from gmail_draft.js
+  // GMAIL DRAFT CREATED
   app.post('/api/automation/draft-created', async (req, res) => {
     try {
       const { clientName, draftStatus } = req.body;
 
-      console.log(`✉️  Draft created: ${clientName}`);
+      if (!clientName || typeof clientName !== 'string' || clientName.length < 2) {
+        apiLogger.warn({ clientName }, 'Invalid clientName received');
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Invalid clientName' 
+        });
+      }
+
+      apiLogger.info({ clientName, draftStatus }, 'Draft created');
 
       if (workflowLogger) {
         const result = await workflowLogger.logMailDraft(
@@ -237,7 +160,7 @@ app.post('/api/automation/draft-created', async (req, res) => {
           draftStatus || 'Success'
         );
         if (!result.success) {
-          console.warn('⚠️  Sheet logging failed:', result.error);
+          apiLogger.warn({ error: result.error }, 'Sheet logging failed');
         }
       }
 
@@ -246,29 +169,105 @@ app.post('/api/automation/draft-created', async (req, res) => {
         sheetsLogged: workflowLogger ? true : false
       });
     } catch (error) {
+      apiLogger.error({ error: error.message }, 'Error in draft-created');
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
-  // ✅ ADD NOTES
+  // DRAFT FOLLOW-UP SENT (Step 10)
+  app.post('/api/automation/draft-followup-sent', async (req, res) => {
+    try {
+      const { clientName, email, threadId, draftType = 'Auto' } = req.body;
+
+      if (!clientName || typeof clientName !== 'string' || clientName.length < 2) {
+        apiLogger.warn({ clientName }, 'Invalid clientName received');
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Invalid clientName' 
+        });
+      }
+
+      apiLogger.info({ clientName, draftType }, 'Draft follow-up sent');
+
+      if (workflowLogger) {
+        const result = await workflowLogger.logDraftFollowup(
+          clientName,
+          draftType,
+          'Success'
+        );
+        if (!result.success) {
+          apiLogger.warn({ error: result.error }, 'Sheet logging failed');
+        }
+      }
+
+      res.json({
+        success: true,
+        sheetsLogged: workflowLogger ? true : false
+      });
+    } catch (error) {
+      apiLogger.error({ error: error.message }, 'Error in draft-followup-sent');
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // MANUAL DRAFT FOLLOW-UP (Step 11)
+  app.post('/api/automation/manual-draft-followup-sent', async (req, res) => {
+    try {
+      const { clientName, email, threadId } = req.body;
+
+      if (!clientName || typeof clientName !== 'string' || clientName.length < 2) {
+        apiLogger.warn({ clientName }, 'Invalid clientName received');
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Invalid clientName' 
+        });
+      }
+
+      apiLogger.info({ clientName }, 'Manual draft follow-up sent');
+
+      if (workflowLogger) {
+        const result = await workflowLogger.logDraftFollowup(
+          clientName,
+          'Manual',
+          'Success'
+        );
+        if (!result.success) {
+          apiLogger.warn({ error: result.error }, 'Sheet logging failed');
+        }
+      }
+
+      res.json({
+        success: true,
+        sheetsLogged: workflowLogger ? true : false
+      });
+    } catch (error) {
+      apiLogger.error({ error: error.message }, 'Error in manual-draft-followup-sent');
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // ADD NOTES
   app.post('/api/automation/add-note', async (req, res) => {
     try {
       const { clientName, note } = req.body;
 
+      apiLogger.info({ clientName }, 'Note added');
+
       if (workflowLogger) {
         const result = await workflowLogger.addNote(clientName, note);
         if (!result.success) {
-          console.warn('⚠️  Sheet logging failed:', result.error);
+          apiLogger.warn({ error: result.error }, 'Sheet logging failed');
         }
       }
 
       res.json({ success: true });
     } catch (error) {
+      apiLogger.error({ error: error.message }, 'Error in add-note');
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
-  // ENDPOINTS FOR STATUS
+  // STATUS ENDPOINTS
   app.get('/api/sheets/status', async (req, res) => {
     if (!workflowLogger) {
       return res.json({ status: 'error', message: 'Not initialized' });
@@ -289,24 +288,24 @@ app.post('/api/automation/draft-created', async (req, res) => {
     });
   });
 
+  // 404 Handler
   app.use((req, res) => {
+    apiLogger.warn({ path: req.path }, 'Route not found');
     res.status(404).json({ error: 'Route not found' });
   });
 
   const server = app.listen(PORT, () => {
-    console.log(`\n✅ Server running on http://localhost:${PORT}`);
-    console.log(`📡 Webhook Endpoints:`);
-    console.log(`   POST /api/automation/proposal-submitted`);
-    console.log(`   POST /api/automation/followup-sent`);
-    console.log(`   POST /api/automation/resume-downloaded`);
-    console.log(`   POST /api/automation/draft-created`);
-    console.log(`\n✨ Ready for automation updates...\n`);
+    serverLogger.info({ port: PORT }, 'Server running');
+    console.log('\n========================================');
+    console.log(`   Server running on http://localhost:${PORT}`);
+    console.log('========================================\n');
   });
 
   process.on('SIGINT', () => {
-    console.log('\n👋 Shutting down...');
+    serverLogger.info('Shutting down server');
     server.close(() => process.exit(0));
   });
 }
 
 initializeServer();
+

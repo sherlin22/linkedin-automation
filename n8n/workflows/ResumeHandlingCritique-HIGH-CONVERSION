@@ -1,0 +1,236 @@
+{
+  "name": "LinkedIn Resume Processing & Critique - HIGH CONVERSION",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "webhook/proposal-submitted",
+        "responseMode": "onReceived"
+      },
+      "id": "proposal-webhook",
+      "name": "Proposal Submitted Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "conditions": [
+            {
+              "id": "timestamp",
+              "leftValue": "={{ new Date().toISOString() }}",
+              "rightValue": "={{ $json.submitted_at }}",
+              "operator": {
+                "type": "date",
+                "operation": "after",
+                "value": 5
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "followup-delay",
+      "name": "Wait 5 Hours",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "domain": "https://api.linkedin.com",
+        "path": "/v2/me",
+        "authentication": "oAuth2"
+      },
+      "id": "linkedin-api",
+      "name": "Check LinkedIn Messages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "folderId": "={{ $env.GOOGLE_DRIVE_FOLDER_ID }}",
+        "binaryData": true,
+        "path": "Resumes/{{ $('Date').format('YYYY-MM-DD') }}/{{ $json.recipient_name }}_{{ $now.format('YYYY-MM-DD') }}"
+      },
+      "id": "drive-upload",
+      "name": "Upload Resume to Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.GROQ_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.3-70b-versatile"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [{\"role\": \"system\", \"content\": \"You are an elite resume critic with 15+ years of experience as:\\n- A senior hiring manager screening 1,000+ resumes across leadership, tech, and corporate roles\\n- A career transformation coach who helped professionals secure 40–100% salary jumps\\n- An ATS optimization expert who reverse-engineers recruiter search behavior\\n\\nYour task is NOT to be polite.\\nYour task is to explain exactly why this CV is being rejected — and what must change to make it interview-worthy.\\n\\n## CRITIQUE FORMAT (FOLLOW EXACTLY)\\n\\n### 1. RECRUITER REALITY CHECK (Opening – 3–4 sentences)\\nIdentify the target role/domain this CV appears to aim for\\nState the single biggest positioning mistake killing callbacks\\nExplain why recruiters mentally reject this CV within 7–10 seconds\\n\\n### 2. HARD TRUTH CRITIQUE – Pointed & Relatable (8–12 Points)\\nUse this structure for EVERY point:\\n**N. 🔴 Problem Title (What's Actually Wrong)**\\n❌ \\\"Quoted line(s) from the CV\\\"\\nWhy this fails ATS scans, recruiter psychology, or hiring logic\\nWhat a recruiter expects to see instead\\n\\n### 3. KEYWORD & MARKET ALIGNMENT VERDICT\\nWhich keywords are MISSING for the target role\\nWhich keywords are GENERIC / OVERUSED\\nWhether the CV reflects junior, mid, or senior signal\\n\\n### 4. DOs vs DON'Ts (Non-Negotiable Fixes)\\n✅ DOs (specific, outcome-driven bullets)\\n🚫 DON'Ts (common but fatal mistakes)\\n\\n### 5. OVERALL IMPRESSION\\nThis CV communicates: ✔ Strength, ✔ Strength\\nBut it also screams: ✘ Weakness, ✘ Weakness\\nEnd with: \\\"In its current form, this CV positions the candidate as __________ instead of __________.\\\"\\n\\n### 6. RECOMMENDED JOB TITLES (5–7)\\nRealistic roles based on experience level and skills\\n\\n### 7. ONE BRUTAL TRUTH\\nOne sentence that makes the candidate rethink their approach\\n\\nIMPORTANT: Be direct, sharp, recruiter-real. No generic advice. Every point must feel 'this is exactly about MY CV'. Wrap your complete response between RESUME_CRITIQUE_START and RESUME_CRITIQUE_END delimiters.\"}, {\"role\": \"user\", \"content\": \"Analyze this resume and write a critique:\\n\\n\" + $json.resume_text + \"\\n\\nRESUME_CRITIQUE_START\"}] }}"
+            },
+            {
+              "name": "temperature",
+              "value": 0.7
+            },
+            {
+              "name": "max_tokens",
+              "value": 3000
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "groq-critique",
+      "name": "Generate HIGH-CONVERSION Critique (Groq)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "additionalFields": {
+          "to": "={{ $json.candidate_email }}",
+          "subject": "Proposal & Resume Review — Next Steps for {{ $json.recipient_name }}",
+          "body": "Dear {{ $json.recipient_name }},\n\nGreetings!!!\nPFA the proposal attached with the details needed to proceed further with the services.\n\nPls share a confirmation on the services you opt-in for:\nResume Writing – Rs {{ $json.resume_price }}/- INR – (Customised Resume with a Result Oriented approach)\nLinkedIn Optimisation – Rs {{ $json.linkedin_price }}/- INR – (Position yourself to stand out from the crowd)\n\nTo proceed, I've reviewed your resume and noticed areas for improvement:\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nRESUME CRITIQUE\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n{{ $json.critique_text }}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nNext Steps\nTo proceed, kindly:\n1. Confirm which services you would like to avail\n2. Make an 80% advance payment to: UPI: deepas2093@sbi\n3. Fill out and return the attached LinkedIn Glossary Sheet\n\nExcited to support your career journey!\n\nLet's get started!\n\nTo Your Success,\nDeepa Rajan\n+91 9036846673",
+          "attachmentsUi": {
+            "attachmentValues": [
+              {
+                "name": "Linkedin Services_Glossary_2025.docx",
+                "binaryProperty": "glossaryFile"
+              }
+            ]
+          }
+        },
+        "options": {
+          "send": false
+        }
+      },
+      "id": "gmail-draft",
+      "name": "Create Gmail Draft",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "={{ $env.GOOGLE_SHEET_ID }}",
+        "sheetName": "Automation Logs",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "values": {
+            "timestamp": "={{ $now }}",
+            "linkedin_thread_id": "={{ $json.linkedin_thread_id }}",
+            "candidate_name": "={{ $json.recipient_name }}",
+            "candidate_email": "={{ $json.candidate_email }}",
+            "years_experience": "={{ $json.years_experience }}",
+            "resume_drive_link": "={{ $json.drive_link }}",
+            "critique_snippet": "={{ $json.critique_text ? $json.critique_text.substring(0, 200) : '' }}",
+            "pricing_selected": "Resume: {{ $json.resume_price }}, LinkedIn: {{ $json.linkedin_price }}",
+            "proposal_status": "submitted",
+            "followup_status": "scheduled",
+            "email_draft_id": "={{ $json.draft_id }}",
+            "debug_files": "={{ $json.debug_artifacts }}"
+          }
+        }
+      },
+      "id": "sheets-log",
+      "name": "Log to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "Proposal Submitted Webhook": {
+      "main": [
+        [
+          {
+            "node": "Wait 5 Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5 Hours": {
+      "main": [
+        [
+          {
+            "node": "Check LinkedIn Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check LinkedIn Messages": {
+      "main": [
+        [
+          {
+            "node": "Upload Resume to Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Resume to Drive": {
+      "main": [
+        [
+          {
+            "node": "Generate HIGH-CONVERSION Critique (Groq)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate HIGH-CONVERSION Critique (Groq)": {
+      "main": [
+        [
+          {
+            "node": "Create Gmail Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Gmail Draft": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

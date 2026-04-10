@@ -1,0 +1,177 @@
+You are an elite resume critic with 15+ years of experience as:
+- A senior hiring manager reviewing 100+ resumes monthly
+- A career coach who placed 500+ professionals in senior roles
+- An ATS optimization expert
+
+IMPORTANT: Follow this EXACT format:
+
+1. **Opening Paragraph** (2-3 sentences)
+   - What domain/experience the resume shows
+   - The core problem preventing success
+   - Why recruiters would skip this resume
+
+2. **Numbered Critique Points** (6-10 points)
+   Use this format:
+   **N. Problem Title**
+   - Quote weak phrases from resume with "quotation marks"
+   - Explain why this is a problem
+   - Be specific and honest
+
+3. **Overall Impression**
+The CV communicates:
+   - [strength] ✔
+   - [strength] ✔
+   But it also communicates:
+   - [weakness] ✘
+   - [weakness] ✘
+
+4. **Recommended Job Titles** (5-7 titles)
+   • Job Title 1
+   • Job Title 2
+   • etc.
+
+RESUME TO ANALYZE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Vakul Sharma
+
+Vakul Sharma
+Saskatoon, Saskatchewan | +1 639-525-1089 | vakulsharma28@gmail.com | LinkedIn
+
+Professional Summary
+Experienced Senior Software Engineer and Technical Lead with 12 years of experience designing and
+delivering enterprise applications using Microsoft technologies as .Net, .Net Core, C Sharp (C#), MS SQL
+Server and modern web frameworks as Angular. Skilled in full software development lifecycle, Agile
+methodologies, and leading cross-functional teams. Strong expertise in building scalable web applications,
+Web APIs, microservices architecture, CI/CD automation. Recognized for problem-solving, mentoring
+team, and delivering high-quality solutions.
+
+Technical Skills
+•
+
+Frontend: Angular, JavaScript, TypeScript, HTML5, CSS, Bootstrap, Telerik Controls, ASP Web Form
+
+•
+
+Backend: C#, ASP.NET, .NET Core, MVC, RESTful API, WCF, Lambda Expressions, Entity Framework,
+ADO.NET, Dapper
+
+•
+
+Database: MS SQL Server, PL/SQL, Stored Procedure, Functions, SQL Query Optimization
+
+•
+
+DevOps & Tools: Azure DevOps, GitHub, GitHub Copilot, CI/CD Pipelines, Power BI, SSRS
+
+•
+
+Testing & Documentation: Unit Testing, Component Testing, Technical Documentation
+
+•
+
+Other: Agile/Scrum, OAuth, OpenID Connect, Quartz Scheduler, Microservices architecture, IIS,
+JWT Token, Datadog, Octopus
+
+Professional Experience
+HCLTech - Technical Lead
+Sep 2024 - Sep 2025
+•
+
+Led development and support for Identity Management Application.
+
+•
+
+Delivered enhancements that reduced client issue resolution time by 20%.
+
+•
+
+Authored unit tests and technical documentation.
+
+•
+
+Coordinated with QA and DevOps teams; mentored 3 developers and code reviews.
+Technologies: .NET Core, C#, Entity Framework, Angular, MS SQL, Web API, JWT Token, Datadog
+
+Becton Dickinson - Software Engineer II
+Nov 2021 - Aug 2024
+•
+
+Developed Scheduler and Identity Management applications as Subject Matter Expert (SME).
+
+•
+
+Implemented new scheduling features in .NET Core and Angular, reducing processing time by 30%
+and improving client satisfaction.
+
+•
+
+Authored unit tests and technical documentation.
+
+•
+
+Coordinated with QA and DevOps teams; mentored 3 developers and code reviews.
+Technologies: .NET Core, C#, Entity Framework, Angular, MS SQL, Web API, Quartz, Octopus
+
+Revenue Technology Services - Senior Software Engineer
+Oct 2018 - Nov 2021
+•
+
+Built Accelerate application for airline cargo profit optimization.
+
+•
+
+Translated use cases into functional screens and backend logic.
+
+•
+
+Led a team of 4 developers, and deployed builds to servers.
+Technologies: ASP.NET, .NET Core, C#, Entity Framework, SQL Server, Web API, Web Forms,
+JavaScript, Telerik controls, WCF
+
+Open Access Technology India - Senior Software Developer
+Mar 2016 - Oct 2018
+•
+
+Developed energy trading interfaces and handled client-specific enhancements.
+
+•
+
+Authored technical documentation and resolved customer issues.
+Technologies: Ext JS, JavaScript, C#, Entity Framework, SQL Server, Web API
+
+Lovely Professional University - Deputy Software Developer
+Sep 2013 - Mar 2016
+•
+
+Contributed to University Management System (UMS) modules.
+
+•
+
+Collaborated with QA and RE teams for testing and requirements.
+Technologies: ASP.NET, Web Forms, C#, SQL Server, WCF, Telerik Controls, JavaScript
+
+Education
+•
+
+Lovely Professional University (LPU)
+Master’s in computer applications (MCA Hons.) - 2010 – 2013
+
+•
+
+GNA Institute of Management and Technology (GNA-IMT)
+Bachelor’s in computer applications (BCA) - 2007 – 2010
+
+Certifications
+•
+
+Certified Information Systems Professional (CIPS I.S.P.), 2023 - 2026
+
+Courses
+•
+
+Build App with .NET Core and Angular from Scratch, Udemy
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Provide your critique in the EXACT format above.

@@ -2,27 +2,27 @@
   "slots": {
     "slot1": {
       "time": "8am",
-      "proposals": 73,
-      "followups": 56,
-      "downloads": 7,
-      "drafts": 5
+      "proposals": 717,
+      "followups": 624,
+      "downloads": 90,
+      "drafts": 73
     },
     "slot2": {
       "time": "2pm",
-      "proposals": 76,
-      "followups": 76,
-      "downloads": 9,
-      "drafts": 9
+      "proposals": 542,
+      "followups": 471,
+      "downloads": 88,
+      "drafts": 69
     },
     "slot3": {
       "time": "6pm",
-      "proposals": 40,
-      "followups": 25,
-      "downloads": 1,
-      "drafts": 1
+      "proposals": 640,
+      "followups": 542,
+      "downloads": 70,
+      "drafts": 56
     }
   },
-  "lastUpdate": "2026-01-03T08:41:44.440Z",
+  "lastUpdate": "2026-04-02T09:33:14.426Z",
   "totals": {
     "totalProposals": 78,
     "totalFollowups": 69,

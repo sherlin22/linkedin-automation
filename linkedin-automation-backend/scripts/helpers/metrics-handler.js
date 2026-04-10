@@ -15,9 +15,9 @@ function loadMetrics() {
   
   return {
     slots: {
-      slot1: { time: '8am', proposals: 0, followups: 0, downloads: 0, drafts: 0 },
-      slot2: { time: '2pm', proposals: 0, followups: 0, downloads: 0, drafts: 0 },
-      slot3: { time: '6pm', proposals: 0, followups: 0, downloads: 0, drafts: 0 }
+      slot1: { time: '8am', proposals: 0, followups: 0, downloads: 0, drafts: 0,  draft_followups: 0, manual_draft_followups: 0 },
+      slot2: { time: '2pm', proposals: 0, followups: 0, downloads: 0, drafts: 0,  draft_followups: 0, manual_draft_followups: 0 },
+      slot3: { time: '6pm', proposals: 0, followups: 0, downloads: 0, drafts: 0,  draft_followups: 0, manual_draft_followups: 0 }
     },
     lastUpdate: new Date().toISOString()
   };

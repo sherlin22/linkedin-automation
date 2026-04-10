@@ -1,0 +1,421 @@
+// scripts/process_failed_resumes_from_drive.js
+// Downloads resumes from Google Drive and processes them for critique + email drafts
+// Targets: Harihararaman M, Niklesh Ajeete, Pushpak Sonar
+
+const fs = require('fs');
+const path = require('path');
+const { google } = require('googleapis');
+
+require('dotenv').config();
+
+// Import helper modules
+const { extractEmailFromResume, extractExperienceYears } = require('./helpers/resume-parser');
+const { generateResumeCritique } = require('./helpers/openai_critique');
+const { createGmailDraft } = require('./helpers/gmail_draft');
+
+const TARGET_CANDIDATES = [
+  'Harihararaman M',
+  'Niklesh Ajeete', 
+  'Pushpak Sonar'
+];
+
+// Resume file names from the state
+const RESUME_FILES = {
+  'Harihararaman M': 'resume_Harihararaman_M_1770643409013.pdf',
+  'Niklesh Ajeete': 'resume_Niklesh_Ajeete_1770643436567.pdf',
+  'Pushpak Sonar': 'resume_Pushpak_Sonar_1770643462209.pdf'
+};
+
+/**
+ * Initialize Google Drive API
+ */
+async function getDriveClient() {
+  try {
+    if (!fs.existsSync('google_token.json')) {
+      throw new Error('google_token.json not found');
+    }
+
+    const tokenData = JSON.parse(fs.readFileSync('google_token.json', 'utf8'));
+    
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/oauth2callback';
+
+    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+    oauth2Client.setCredentials(tokenData);
+
+    return google.drive({ version: 'v3', auth: oauth2Client });
+  } catch (error) {
+    console.error('❌ Failed to initialize Drive client:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Find folder ID by name
+ */
+async function findFolderId(drive, folderName, parentId = null) {
+  let query = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  if (parentId) {
+    query += ` and '${parentId}' in parents`;
+  }
+
+  const response = await drive.files.list({
+    q: query,
+    fields: 'files(id, name)',
+    spaces: 'drive',
+    pageSize: 10
+  });
+
+  if (response.data.files && response.data.files.length > 0) {
+    return response.data.files[0].id;
+  }
+  return null;
+}
+
+/**
+ * Find file ID by name
+ */
+async function findFileId(drive, fileName, folderId = null) {
+  let query = `name='${fileName}' and trashed=false`;
+  if (folderId) {
+    query += ` and '${folderId}' in parents`;
+  }
+
+  const response = await drive.files.list({
+    q: query,
+    fields: 'files(id, name, mimeType, size)',
+    spaces: 'drive',
+    pageSize: 10
+  });
+
+  if (response.data.files && response.data.files.length > 0) {
+    return response.data.files[0];
+  }
+  return null;
+}
+
+/**
+ * Download file from Google Drive
+ */
+async function downloadFile(drive, fileId, fileName, destPath) {
+  console.log(`📥 Downloading: ${fileName}`);
+
+  const dest = fs.createWriteStream(destPath);
+  
+  await drive.files.get({
+    fileId: fileId,
+    alt: 'media'
+  }, {
+    responseType: 'stream'
+  }, (err, response) => {
+    if (err) {
+      console.error('❌ Error getting file:', err);
+      return;
+    }
+    response.data.pipe(dest);
+  });
+
+  return new Promise((resolve, reject) => {
+    dest.on('finish', () => {
+      console.log(`✅ Downloaded: ${destPath}`);
+      resolve(true);
+    });
+    dest.on('error', (err) => {
+      console.error('❌ Download error:', err);
+      reject(err);
+    });
+  });
+}
+
+/**
+ * Process a single resume for critique and draft
+ */
+async function processResume(clientName, filePath, fileExtension) {
+  console.log(`\n${'='.repeat(60)}`);
+  console.log(`🔄 PROCESSING: ${clientName}`);
+  console.log(`${'='.repeat(60)}`);
+
+  const result = {
+    clientName,
+    filePath,
+    fileExtension,
+    stages: {
+      downloaded: true,
+      parsed: false,
+      emailExtracted: false,
+      experienceExtracted: false,
+      critiqueGenerated: false,
+      draftCreated: false
+    }
+  };
+
+  try {
+    // 1. Check file exists
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`File not found: ${filePath}`);
+    }
+
+    const stats = fs.statSync(filePath);
+    console.log(`📄 File size: ${Math.round(stats.size / 1024)} KB`);
+
+    // 2. Email Extraction
+    console.log(`\n1️⃣  EMAIL EXTRACTION`);
+    const email = await extractEmailFromResume(filePath, fileExtension);
+    if (email?.success) {
+      result.stages.emailExtracted = true;
+      result.clientEmail = email.email;
+      console.log(`   ✅ Email: ${email.email}`);
+    } else {
+      console.log(`   ⚠️  No email found`);
+      result.clientEmail = null;
+    }
+
+    // 3. Experience Analysis
+    console.log(`\n2️⃣  EXPERIENCE ANALYSIS`);
+    const exp = await extractExperienceYears(filePath, fileExtension);
+    if (exp?.success && exp.years !== null) {
+      result.stages.experienceExtracted = true;
+      result.yearsExperience = exp.years;
+      console.log(`   ✅ Experience: ${exp.years} years`);
+    } else {
+      result.yearsExperience = 0;
+      console.log(`   ⚠️  Experience unknown, using 0`);
+    }
+
+    // 4. Calculate Pricing
+    const pricing = calculatePricing(result.yearsExperience || 0);
+    result.pricing = pricing;
+    console.log(`\n3️⃣  PRICING`);
+    console.log(`   💰 Resume: ₹${pricing.resume_price}, LinkedIn: ₹${pricing.linkedin_price}`);
+
+    // 5. AI Critique Generation
+    console.log(`\n4️⃣  AI CRITIQUE GENERATION`);
+    const critique = await generateResumeCritique(filePath, fileExtension, clientName);
+    
+    if (critique?.success) {
+      result.stages.critiqueGenerated = true;
+      result.resumeCritique = critique.critique;
+      console.log(`   ✅ Critique generated (${critique.critique.length} chars)`);
+      if (critique.tokens) {
+        console.log(`   📊 Tokens used: ${critique.tokens}`);
+      }
+    } else {
+      console.log(`   ❌ Critique failed: ${critique?.error}`);
+      result.resumeCritique = null;
+    }
+
+    // 6. Gmail Draft Creation
+    console.log(`\n5️⃣  GMAIL DRAFT CREATION`);
+    if (result.stages.critiqueGenerated) {
+      const draft = await createGmailDraft({
+        clientName,
+        clientEmail: result.clientEmail,
+        resumePrice: result.pricing.resume_price,
+        linkedinPrice: result.pricing.linkedin_price,
+        resumeCritique: result.resumeCritique
+      });
+
+      if (draft?.success) {
+        result.stages.draftCreated = true;
+        result.draftInfo = draft;
+        console.log(`   ✅ Gmail Draft: ${draft.draftLink}`);
+      } else if (draft?.skipped) {
+        console.log(`   ⏭️  Draft skipped: ${draft.message}`);
+      } else {
+        console.log(`   ❌ Draft failed: ${draft?.error}`);
+      }
+    } else {
+      console.log(`   ⏭️  Skipping draft (no critique)`);
+    }
+
+    console.log(`\n${'='.repeat(60)}`);
+    if (result.stages.draftCreated) {
+      console.log(`✅ WORKFLOW COMPLETE: ${clientName}`);
+    } else {
+      console.log(`⚠️  WORKFLOW INCOMPLETE: ${clientName}`);
+    }
+    console.log(`${'='.repeat(60)}\n`);
+
+    return result;
+
+  } catch (error) {
+    console.error(`\n❌ Error processing ${clientName}:`, error.message);
+    result.error = error.message;
+    return result;
+  }
+}
+
+/**
+ * Calculate pricing based on experience
+ */
+function calculatePricing(years) {
+  const chart = {
+    "0-3": { resume: 2500, linkedin: 2000 },
+    "4-6": { resume: 3000, linkedin: 2500 },
+    "6-8": { resume: 4000, linkedin: 2500 },
+    "8-10": { resume: 6000, linkedin: 3000 },
+    "10-12": { resume: 7000, linkedin: 3500 },
+    "12+": { resume: 8000, linkedin: 4000 }
+  };
+
+  let range = "0-3";
+  if (years >= 12) range = "12+";
+  else if (years >= 10) range = "10-12";
+  else if (years >= 8) range = "8-10";
+  else if (years >= 6) range = "6-8";
+  else if (years >= 4) range = "4-6";
+
+  return {
+    resume_price: chart[range].resume,
+    linkedin_price: chart[range].linkedin,
+    experience_range: range,
+    years_experience: years
+  };
+}
+
+/**
+ * Main function
+ */
+async function main() {
+  console.log('🚀 PROCESS FAILED RESUMES FROM GOOGLE DRIVE');
+  console.log('='.repeat(60));
+  console.log(`📋 Target candidates: ${TARGET_CANDIDATES.join(', ')}`);
+  console.log('');
+
+  try {
+    // Initialize Drive
+    console.log('🔗 Connecting to Google Drive...');
+    const drive = await getDriveClient();
+
+    // Find the Readable folder
+    console.log('\n📁 Locating LinkedIn_Automation/Resumes/Readable folder...');
+    const rootId = await findFolderId(drive, 'LinkedIn_Automation');
+    
+    if (!rootId) {
+      throw new Error('LinkedIn_Automation folder not found');
+    }
+    console.log(`   ✓ Root folder ID: ${rootId}`);
+
+    const resumesFolderId = await findFolderId(drive, 'Resumes', rootId);
+    if (!resumesFolderId) {
+      throw new Error('Resumes folder not found');
+    }
+    console.log(`   ✓ Resumes folder ID: ${resumesFolderId}`);
+
+    const readableFolderId = await findFolderId(drive, 'Readable', resumesFolderId);
+    if (!readableFolderId) {
+      throw new Error('Readable folder not found');
+    }
+    console.log(`   ✓ Readable folder ID: ${readableFolderId}`);
+
+    // Ensure download directory exists
+    const downloadDir = path.join(process.cwd(), 'downloads', 'resumes', 'temp');
+    if (!fs.existsSync(downloadDir)) {
+      fs.mkdirSync(downloadDir, { recursive: true });
+    }
+
+    const results = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    // Process each candidate
+    for (const candidateName of TARGET_CANDIDATES) {
+      const fileName = RESUME_FILES[candidateName];
+      if (!fileName) {
+        console.log(`\n⚠️  No file found for: ${candidateName}`);
+        continue;
+      }
+
+      console.log(`\n${'━'.repeat(60)}`);
+      console.log(`🔍 Processing: ${candidateName}`);
+      console.log(`   File: ${fileName}`);
+      console.log(`${'━'.repeat(60)}`);
+
+      // Find file in Drive
+      const fileInfo = await findFileId(drive, fileName, readableFolderId);
+      
+      if (!fileInfo) {
+        console.log(`   ❌ File not found in Drive: ${fileName}`);
+        failCount++;
+        continue;
+      }
+
+      console.log(`   ✓ Found in Drive: ${fileInfo.id}`);
+      console.log(`   📄 Size: ${Math.round(fileInfo.size / 1024)} KB`);
+
+      // Download file
+      const destPath = path.join(downloadDir, fileName);
+      
+      try {
+        await downloadFile(drive, fileInfo.id, fileName, destPath);
+
+        // Process resume
+        const extension = path.extname(fileName).toLowerCase();
+        const result = await processResume(candidateName, destPath, extension);
+
+        results.push(result);
+
+        if (result.stages.draftCreated) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+
+        // Clean up temp file
+        if (fs.existsSync(destPath)) {
+          fs.unlinkSync(destPath);
+          console.log(`🗑️  Cleaned up temp file: ${destPath}`);
+        }
+
+      } catch (error) {
+        console.error(`   ❌ Failed to process: ${error.message}`);
+        failCount++;
+      }
+    }
+
+    // Summary
+    console.log('\n' + '='.repeat(60));
+    console.log('🏁 PROCESSING COMPLETE');
+    console.log('='.repeat(60));
+    console.log(`📊 Results:`);
+    console.log(`   ✅ Successful: ${successCount}`);
+    console.log(`   ❌ Failed: ${failCount}`);
+    console.log(`   📋 Total: ${results.length}`);
+    console.log('');
+
+    if (successCount > 0) {
+      console.log('✅ Drafts created for:');
+      results.filter(r => r.stages.draftCreated).forEach(r => {
+        console.log(`   - ${r.clientName}: ${r.draftInfo?.draftLink}`);
+      });
+    }
+
+    if (failCount > 0) {
+      console.log('\n❌ Failed to process:');
+      results.filter(r => !r.stages.draftCreated).forEach(r => {
+        console.log(`   - ${r.clientName}: ${r.error || 'Unknown error'}`);
+      });
+    }
+
+    return results;
+
+  } catch (error) {
+    console.error('\n❌ Fatal error:', error.message);
+    console.error(error.stack);
+    process.exit(1);
+  }
+}
+
+// Run if called directly
+if (require.main === module) {
+  main().then(() => {
+    process.exit(0);
+  }).catch((error) => {
+    console.error('Unhandled error:', error);
+    process.exit(1);
+  });
+}
+
+module.exports = { processResume, calculatePricing };
+

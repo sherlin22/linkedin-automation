@@ -1,298 +1,373 @@
-// scripts/helpers/openai_critique.js - UPGRADED TO MATCH YOUR FORMAT
+// AI API for Resume Critique
+// Uses Groq (Llama 3.3 70B) - FREE, Fast, High Quality
+// OpenAI GPT-4o-mini is commented out (paid option)
+
 const { parsePDF } = require('./resume-parser');
 
 /**
- * Generate professional resume critique matching the exact format from examples
- * Uses structured, numbered critique with specific weak phrase identification
+ * Configuration
+ * 
+ * GROQ API (RECOMMENDED - FREE):
+ * Get API key from: https://console.groq.com
+ * 
+ * OPENAI API (PAID - COMMENTED OUT):
+ * Get API key from: https://platform.openai.com/api-keys
  */
-async function generateResumeCritique(filePath, extension, candidateName) {
-  try {
-    const apiKey = process.env.OPENAI_API_KEY;
-    
-    if (!apiKey) {
-      console.error('❌ OPENAI_API_KEY not configured');
-      return {
-        success: false,
-        error: 'OpenAI API key not configured in .env file'
-      };
-    }
-    
-    console.log(`🤖 Generating Professional Critique for: ${candidateName}`);
-    
-    // Parse resume text
-    let resumeText = null;
-    
-    if (extension.toLowerCase() === '.pdf') {
-      const result = await parsePDF(filePath);
-      if (result.success) {
-        resumeText = result.text;
-      } else {
-        return {
-          success: false,
-          error: 'Could not parse PDF: ' + result.error
-        };
-      }
-    } else {
-      return {
-        success: false,
-        error: 'Only PDF files are supported'
-      };
-    }
-    
-    if (!resumeText || resumeText.trim().length < 100) {
-      return {
-        success: false,
-        error: 'Resume text too short or empty'
-      };
-    }
-    
-    console.log(`   📝 Resume: ${resumeText.length} characters`);
+const CONFIG = {
+  // Groq API (RECOMMENDED - 100% FREE with high speed)
+  useGroq: true,
+  groqApiKey: process.env.GROQ_API_KEY || '',
+  
+  // OpenAI API (PAID - currently commented out)
+  // Uncomment to use OpenAI as fallback
+  /*
+  useOpenAI: false,  // SET TO TRUE to enable OpenAI
+  openaiApiKey: process.env.OPENAI_API_KEY || '',
+  */
+  
+  // Fallback to template if API fails
+  useTemplateFallback: true,
+  
+  // Priority order: Groq first (free), then template (free), then OpenAI (paid if enabled)
+  priorityOrder: ['groq', 'template']  // Add 'openai' if you enable it above
+};
 
-    // ========== SYSTEM PROMPT (Defines the expert role) ==========
-    const systemPrompt = `You are an elite resume critic with 15+ years of experience as:
-- A senior hiring manager who reviews 100+ resumes per month
-- A career coach who has placed 500+ professionals in senior roles
-- An ATS (Applicant Tracking System) optimization expert
-
-Your critiques are:
-- Direct, honest, and constructive (no sugar-coating)
-- Structured with clear numbered points
-- Specific to the candidate's actual resume content
-- Focused on market reality and hiring psychology
-- Written in professional but straightforward English
-
-CRITICAL FORMATTING RULES:
-1. Start with a harsh but fair opening paragraph explaining why this resume isn't working
-2. Use numbered points (1., 2., 3., etc.) for each major weakness
-3. Bold the key problem in each point using this format: **Problem Title**
-4. Quote weak phrases from their actual resume using "quotation marks"
-5. End with "Recommended Job" section listing 4-6 specific job titles
-6. Keep the tone professional but brutally honest
-7. Focus on what's WRONG, not what to do (that comes in the email)
-
-DO NOT:
-- Use markdown headers (###, ##)
-- Say "this CV is good" or give excessive praise
-- Provide rewriting suggestions (just identify problems)
-- Use bullet points (•) - use numbered points only
-- Mention "ATS keywords" unless truly critical`;
-
-    // ========== USER PROMPT (Specific instructions for this resume) ==========
-    const userPrompt = `Analyze this resume for ${candidateName} using the EXACT format from the examples provided.
-
-RESUME CONTENT:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${resumeText.substring(0, 20000)}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-YOUR TASK:
-
-Write a resume critique that follows this EXACT structure:
-
-[Opening Paragraph]
-One harsh but honest paragraph (3-4 sentences) explaining:
-- What domain/experience the resume shows
-- The core problem preventing success
-- Why recruiters would skip this resume
-- Use phrases like "This CV shows X, but it is weakened by Y"
-
-[Numbered Critique Points]
-Create 6-9 numbered points covering:
-
-1. **The CV Positions You as [Problem]**
-   Explain positioning issue, quote weak phrases like "assisted," "supported," etc.
-
-2. **No Clear Differentiation from [Peer Group]**
-   What's missing that makes them forgettable
-
-3. **[Key Experience] Is Undersold**
-   Identify strong experience that's poorly communicated
-
-4. **Skills Section Is [Problem]**
-   What's wrong with how skills are listed
-
-5. **[Tool/Technology] Is Mentioned but Not Proven**
-   Credibility gaps in technical claims
-
-6. **[Section Name] Section [Problem]**
-   Issues with specific resume sections
-
-7. **Missing [Advanced Signal Type]**
-   What senior markers are absent
-
-8. **[Formatting/Structure Issue]**
-   Readability or organization problems
-
-9. **Overall Impression**
-   Use this exact structure:
-   "The CV communicates:
-   - [strength] ✔
-   - [strength] ✔
-   But it also communicates:
-   - [weakness] ✘
-   - [weakness] ✘"
-
-[Closing Statement]
-One sentence about the gap between potential and presentation.
-
-Recommended Job
-
-[List 4-6 specific job titles relevant to their experience level and domain]
-
-CRITICAL RULES:
-- Quote actual weak phrases from THEIR resume (e.g., "assisted," "gained exposure")
-- Be specific about what's missing (metrics, scale, authority)
-- Focus on positioning psychology, not just content
-- Match the professional but direct tone of the examples
-- Use the EXACT "Overall Impression" format shown above`;
-
-    console.log(`   📡 Calling OpenAI GPT-4o-mini with upgraded prompt...`);
-    
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.75, // Slightly creative but consistent
-        max_tokens: 4000,
-        top_p: 0.9
-      })
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ OpenAI error:', response.status);
-      console.error('   Details:', errorText.substring(0, 200));
-      
-      return {
-        success: false,
-        error: `OpenAI API error: ${response.status}`
-      };
-    }
-    
-    const data = await response.json();
-    let critique = data.choices?.[0]?.message?.content;
-    
-    if (!critique) {
-      return {
-        success: false,
-        error: 'No response from OpenAI'
-      };
-    }
-    
-    // Clean up the critique (remove any markdown artifacts)
-    critique = critique
-      .replace(/^#{1,6}\s+/gm, '') // Remove markdown headers
-      .replace(/\*\*\*/g, '') // Remove triple asterisks
-      .trim();
-    
-    console.log(`   ✅ Professional Critique Generated (${critique.length} chars)`);
-    console.log(`   📊 Tokens Used: ${data.usage?.total_tokens || 0}`);
-    console.log(`   💰 Cost: ~$${((data.usage?.total_tokens || 0) * 0.00015 / 1000).toFixed(4)}`);
-    
-    return {
-      success: true,
-      critique: critique,
-      tokens: data.usage?.total_tokens || 0,
-      promptTokens: data.usage?.prompt_tokens,
-      completionTokens: data.usage?.completion_tokens,
-      model: 'gpt-4o-mini',
-      critiqueType: 'professional-structured-format'
-    };
-    
-  } catch (error) {
-    console.error('❌ Critique generation error:', error.message);
-    return {
-      success: false,
-      error: error.message
-    };
+// ========== TEMPLATE-BASED CRITIQUE (Fallback) ==========
+function generateTemplateCritique(resumeText, candidateName, yearsExperience) {
+  const text = resumeText.toLowerCase();
+  const lines = resumeText.split('\n').filter(l => l.trim().length > 0);
+  
+  const findings = {
+    hasMetrics: /\$[\d,]+|₹[\d,]+|\d+\s*(%|percent|percentage)/i.test(text),
+    hasLeadership: /(?:managed|led|headed|directed|supervised|mentored|coordinated).{0,50}(?:team|people|staff|members|resources)/i.test(text),
+    hasAchievements: /(?:achieved|improved|increased|reduced|optimized|delivered|completed|won|launched|created|built|developed|implemented)/i.test(text),
+    hasTechnicalSkills: /(?:java|python|javascript|react|angular|node|sql|mongodb|aws|azure|docker|kubernetes)/i.test(text),
+    isSenior: yearsExperience >= 8,
+    hasVaguePhrases: /(?:assisted|supported|helped|participated|involved|gained|learned)/i.test(text),
+    hasRepetition: lines.length > 15
+  };
+  
+  let critique = 'RESUME CRITIQUE\n' + '-'.repeat(60) + '\n\n';
+  
+  // Opening paragraph
+  if (findings.isSenior && findings.hasRepetition) {
+    critique += 'This CV shows solid tenure and consistent responsibility, but it is weakened by repetitive language and lack of impact metrics. Recruiters would likely skip this resume because it fails to convey strong accomplishments.\n\n';
+  } else if (findings.isSenior) {
+    critique += 'This CV demonstrates significant professional experience, but it is weakened by generic language and lack of executive storytelling that obscures your authority.\n\n';
+  } else {
+    critique += 'This CV demonstrates relevant background and experience, but it is weakened by generic language that fails to highlight unique value propositions.\n\n';
   }
+  
+  // Numbered points
+  let pointNum = 1;
+  
+  if (findings.hasVaguePhrases) {
+    critique += pointNum++ + '. The CV Uses Generic Language\nPhrases like "assisted," "supported," and "involved in" position you as someone who merely participated rather than a key contributor.\n\n';
+  }
+  
+  if (!findings.hasMetrics) {
+    critique += pointNum++ + '. No Quantified Achievements\nThe resume lacks measurable outcomes such as percentage improvements, cost savings, or scale of work. Without metrics, contributions appear administrative rather than value-driving.\n\n';
+  }
+  
+  if (findings.hasTechnicalSkills) {
+    critique += pointNum++ + '. Technical Skills Need Context\nTools and technologies are listed without showing where and how they were applied or what problems they solved.\n\n';
+  }
+  
+  if (!findings.hasLeadership && yearsExperience >= 3) {
+    critique += pointNum++ + '. Missing Leadership Signals\nNo indications of leadership, team management, or advanced project responsibility that would signal growth potential.\n\n';
+  }
+  
+  // Overall impression
+  critique += 'Overall Impression\n' + '-'.repeat(60) + '\n';
+  critique += 'The CV communicates:\n';
+  if (findings.hasTechnicalSkills) critique += '   - Technical skills awareness [OK]\n';
+  if (yearsExperience > 0) critique += '   - Relevant experience [OK]\n';
+  critique += 'But it also communicates:\n';
+  critique += '   - Generic positioning [NEEDS WORK]\n';
+  critique += '   - Room for improvement [NEEDS WORK]\n\n';
+  
+  // Recommended jobs
+  critique += 'Recommended Job Titles:\n';
+  if (findings.isSenior) {
+    critique += '  * Senior Software Engineer\n  * Technical Lead\n  * Software Architect\n  * Engineering Team Lead\n';
+  } else if (yearsExperience >= 3) {
+    critique += '  * Software Developer\n  * Full Stack Developer\n  * Application Developer\n';
+  } else {
+    critique += '  * Junior Software Developer\n  * Software Engineer - Trainee\n  * Programmer Analyst\n';
+  }
+  
+  critique += '\n' + '-'.repeat(60) + '\n';
+  
+  return critique;
 }
 
-/**
- * Quick critique for testing (lightweight alternative)
- */
-async function generateQuickCritique(filePath, extension, candidateName) {
+// ========== GROQ API (FREE - HIGH-CONVERSION PROMPT) ==========
+async function generateCritiqueGroq(filePath, extension, candidateName) {
+  if (!CONFIG.groqApiKey) {
+    console.log('   [GROQ_API_KEY not configured]');
+    return null;
+  }
+  
+  console.log('   Using Groq (Llama 3.3 70B - FREE)');
+  
   try {
-    const apiKey = process.env.OPENAI_API_KEY;
-    
-    if (!apiKey) {
-      return {
-        success: false,
-        error: 'OpenAI API key not configured'
-      };
-    }
-    
-    console.log(`⚡ Generating Quick Test Critique for: ${candidateName}`);
-    
     const result = await parsePDF(filePath);
-    if (!result.success) {
-      return { success: false, error: result.error };
-    }
-    
+    if (!result.success) return null;
     const resumeText = result.text;
     
-    const systemPrompt = `You are a direct resume evaluator. Provide quick honest feedback.
-
-Format:
-TOP 3 PROBLEMS:
-1. [specific issue with quote]
-2. [specific issue with quote]
-3. [specific issue with quote]
-
-BIGGEST FIX: [one critical action]
-
-Recommended Job: [2-3 titles]`;
-
-    const userPrompt = `Quick critique for ${candidateName}:\n\n${resumeText.substring(0, 10000)}`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': 'Bearer ' + CONFIG.groqApiKey
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
+          {
+            role: 'system',
+            content: `You are an elite resume critic with 15+ years of experience as:
+- A senior hiring manager screening 1,000+ resumes across leadership, tech, and corporate roles
+- A career transformation coach who helped professionals secure 40-100% salary jumps
+- An ATS optimization expert who reverse-engineers recruiter search behavior
+
+Your task is NOT to be polite. Your task is to explain exactly why this CV is being rejected — and what must change to make it interview-worthy.
+
+## CRITIQUE FORMAT (FOLLOW EXACTLY)
+
+### 1. RECRUITER REALITY CHECK (Opening - 3-4 sentences)
+Identify the target role/domain this CV appears to aim for
+State the single biggest positioning mistake killing callbacks
+Explain why recruiters mentally reject this CV within 7-10 seconds
+
+### 2. HARD TRUTH CRITIQUE - Pointed & Relatable (8-12 Points)
+Use this structure for EVERY point:
+**N. Problem Title (What's Actually Wrong)**
+"Quoted line(s) from the CV"
+Why this fails ATS scans, recruiter psychology, or hiring logic
+What a recruiter expects to see instead
+
+### 3. KEYWORD & MARKET ALIGNMENT VERDICT
+Which keywords are MISSING for the target role
+Which keywords are GENERIC / OVERUSED
+Whether the CV reflects junior, mid, or senior signal
+
+### 4. DOs vs DON'Ts (Non-Negotiable Fixes)
+DOs (specific, outcome-driven bullets)
+DON'Ts (common but fatal mistakes)
+
+### 5. Final Recruiter Verdict (No Heading in Output)
+
+Write 4-6 sentences summarizing what this CV actually communicates to a hiring manager.
+This CV communicates: 
+✔ Strength, 
+✔ Strength
+But it also screams: 
+✘ Weakness, 
+✘ Weakness
+End with: "In its current form, this CV positions the candidate as __________ instead of __________."
+
+### 6. RECOMMENDED JOB TITLES (5-7)
+Realistic roles based on experience level and skills
+
+### 7. ONE BRUTAL TRUTH
+One sentence that makes the candidate rethink their approach`
+          },
+          {
+            role: 'user',
+            content: 'Analyze this resume for ' + candidateName + ' and write a critique:\n\nRESUME:\n' + resumeText.substring(0, 15000)
+          }
         ],
         temperature: 0.7,
-        max_tokens: 1000
+        max_tokens: 3000
       })
     });
     
     if (!response.ok) {
-      return { success: false, error: `API error: ${response.status}` };
+      const error = await response.json();
+      console.log('   Groq API error: ' + (error.error?.message || response.status));
+      return null;
     }
     
     const data = await response.json();
     const critique = data.choices?.[0]?.message?.content;
     
-    console.log(`   ⚡ Quick critique ready`);
+    console.log('   Groq critique generated (' + (critique?.length || 0) + ' chars)');
+    console.log('   Tokens used: ' + (data.usage?.total_tokens || 0));
     
     return {
       success: true,
-      critique: critique.trim(),
+      critique: critique,
       tokens: data.usage?.total_tokens || 0,
-      critiqueType: 'quick-test'
+      model: 'llama-3.3-70b-versatile (Groq - FREE)',
+      critiqueType: 'ai-generated'
     };
     
   } catch (error) {
-    console.error('❌ Quick critique error:', error.message);
+    console.log('   Groq API failed: ' + error.message);
+    return null;
+  }
+}
+
+/*
+// ========== OPENAI API (PAID OPTION - COMMENTED OUT) ==========
+// To enable: uncomment this section and add 'openai' to priorityOrder
+async function generateCritiqueOpenAI(filePath, extension, candidateName) {
+  if (!CONFIG.openaiApiKey) {
+    console.log('   [OPENAI_API_KEY not configured]');
+    return null;
+  }
+  
+  console.log('   Using OpenAI (GPT-4o-mini)');
+  
+  try {
+    const result = await parsePDF(filePath);
+    if (!result.success) return null;
+    const resumeText = result.text;
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + CONFIG.openaiApiKey
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an elite resume critic with 15+ years of experience. Provide DIRECT, HONEST critiques with numbered points (1., 2., etc.), quote weak phrases from the resume, and end with "Overall Impression" and "Recommended Job Titles" sections.'
+          },
+          {
+            role: 'user',
+            content: 'Analyze this resume for ' + candidateName + ' and write a critique:\n\nRESUME:\n' + resumeText.substring(0, 15000)
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 2500
+      })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      console.log('   OpenAI error: ' + (error.error?.message || response.status));
+      return null;
+    }
+    
+    const data = await response.json();
+    const critique = data.choices?.[0]?.message?.content;
+    
+    console.log('   OpenAI critique generated (' + (critique?.length || 0) + ' chars)');
+    
+    return {
+      success: true,
+      critique: critique,
+      tokens: data.usage?.total_tokens || 0,
+      model: 'gpt-4o-mini (OpenAI - PAID)',
+      critiqueType: 'ai-generated'
+    };
+    
+  } catch (error) {
+    console.log('   OpenAI failed: ' + error.message);
+    return null;
+  }
+}
+*/
+
+// ========== MAIN FUNCTION ==========
+async function generateResumeCritique(filePath, extension, candidateName) {
+  try {
+    console.log('Generating Critique for: ' + candidateName);
+    
+    const result = await parsePDF(filePath);
+    if (!result.success) {
+      return { success: false, error: 'Could not parse PDF' };
+    }
+    
+    const resumeText = result.text;
+    const yearsResult = await extractExperienceYears(filePath, extension);
+    const years = yearsResult?.success ? yearsResult.years : 0;
+    
+    console.log('   Resume: ' + resumeText.length + ' chars');
+    
+    // Try in priority order
+    for (const provider of CONFIG.priorityOrder) {
+      console.log('   Trying: ' + provider.toUpperCase());
+      
+      if (provider === 'groq') {
+        const groqResult = await generateCritiqueGroq(filePath, extension, candidateName);
+        if (groqResult) return groqResult;
+      }
+      
+      /*
+      if (provider === 'openai') {
+        const openaiResult = await generateCritiqueOpenAI(filePath, extension, candidateName);
+        if (openaiResult) return openaiResult;
+      }
+      */
+      
+      if (provider === 'template') {
+        console.log('   Using template-based critique');
+        const templateResult = generateTemplateCritique(resumeText, candidateName, years);
+        return {
+          success: true,
+          critique: templateResult,
+          tokens: 0,
+          model: 'Template-Based',
+          critiqueType: 'template'
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      error: 'All critique methods failed'
+    };
+    
+  } catch (error) {
+    console.error('Critique error: ' + error.message);
     return { success: false, error: error.message };
   }
 }
 
+// ========== HELPER: Experience Extraction ==========
+async function extractExperienceYears(filePath, extension) {
+  try {
+    const result = await parsePDF(filePath);
+    if (!result.success) return { success: false, years: null };
+    
+    const text = result.text;
+    const yearPatterns = [
+      /(\d{4})\s*[-to]+\s*(\d{4}|present|current|now)/gi,
+      /(\d+)\+?\s*years?\s*(of\s*)?(experience|exp)/gi
+    ];
+    
+    let maxYears = 0;
+    yearPatterns.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) {
+        matches.forEach(m => {
+          const yearMatch = m.match(/(\d{4})/g);
+          if (yearMatch && yearMatch.length >= 2) {
+            const start = parseInt(yearMatch[0]);
+            const end = yearMatch[1] === 'present' ? new Date().getFullYear() : parseInt(yearMatch[1]);
+            maxYears = Math.max(maxYears, end - start);
+          }
+          const expMatch = m.match(/(\d+)/);
+          if (expMatch) maxYears = Math.max(maxYears, parseInt(expMatch[1]));
+        });
+      }
+    });
+    
+    return { success: true, years: maxYears || 0 };
+  } catch {
+    return { success: false, years: 0 };
+  }
+}
+
 module.exports = {
-  generateResumeCritique,  // Production critique matching your format
-  generateQuickCritique    // Testing/debugging only
+  generateResumeCritique,
+  generateTemplateCritique,
+  CONFIG
 };
+

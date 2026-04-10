@@ -3,6 +3,7 @@ const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
 const { updateMetric } = require('./metrics-handler');
+const { getCritique } = require('./resume-critique-template');
 require('dotenv').config();
 
 const GMAIL_TEMPLATE = `Dear {name},
@@ -83,7 +84,7 @@ function cleanMarkdownForEmail(text) {
 }
 
 /**
- * Create Gmail draft with attachment
+ * Create Gmail draft with attachment - NOW USES YOUR CUSTOM CRITIQUE TEMPLATE
  */
 async function createGmailDraft(options = {}) {
   try {
@@ -92,7 +93,7 @@ async function createGmailDraft(options = {}) {
       clientEmail = null,
       resumePrice = 2500,
       linkedinPrice = 2000,
-      resumeCritique = 'Please provide feedback details'
+      resumeCritique = null  // Optional - if provided, uses it; otherwise uses template
     } = options;
 
     console.log('🔍 Checking Gmail credentials...');
@@ -118,21 +119,41 @@ async function createGmailDraft(options = {}) {
     oauth2Client.setCredentials(tokenData);
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
-    // ✅ Clean the critique before inserting into email
-    const cleanedCritique = cleanMarkdownForEmail(resumeCritique);
+    // ✅ Use your custom critique template if no AI critique provided
+    let critiqueText;
+    if (resumeCritique) {
+      critiqueText = cleanMarkdownForEmail(resumeCritique);
+      console.log('   🧹 Using provided critique (cleaned)');
+    } else {
+      critiqueText = getCritique(clientName);
+      console.log('   📝 Using your custom critique template');
+    }
     
-    console.log('   🧹 Cleaned Markdown formatting from critique');
+    console.log(`   📊 Critique length: ${critiqueText.length} characters`);
 
-    // Build email body
+    // Build email body with your template
     let emailBody = GMAIL_TEMPLATE
       .replace('{name}', clientName || 'Client')
       .replace('{resumePrice}', resumePrice)
       .replace('{linkedinPrice}', linkedinPrice)
-      .replace('{critique}', cleanedCritique || 'Areas for improvement pending detailed review');
+      .replace('{critique}', critiqueText);
 
     // Build email with attachment
+    // ✅ CRITICAL: Always use extracted clientEmail from resume
+    const recipientEmail = clientEmail || null;
+    
+    if (recipientEmail) {
+      console.log(`   📧 ✅ SENDING TO: ${recipientEmail}`);
+    } else {
+      console.log('   ⚠️  No email extracted from resume!');
+      console.log('   💡 Add DEFAULT_RECIPIENT_EMAIL to .env as fallback');
+    }
+
+    // Use extracted email, or fallback to .env
+    const finalRecipient = recipientEmail || process.env.DEFAULT_RECIPIENT_EMAIL || '';
+
     const rawMessage = buildRawMessageWithAttachment({
-      to: clientEmail || 'recipient@example.com',
+      to: finalRecipient,  // Now uses extracted email: vakulsharma28@gmail.com
       subject: `Resume & LinkedIn Profile Enhancement Proposal for ${clientName}`,
       body: emailBody,
       attachmentPath: path.join(__dirname, '../../Linkedin Services_Glossary_2025.docx')

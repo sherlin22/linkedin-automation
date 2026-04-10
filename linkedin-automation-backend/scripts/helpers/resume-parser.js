@@ -1,5 +1,60 @@
-// helpers/resume-parser.js - FIXED VERSION (Safe URI Decode)
+// helpers/resume-parser.js - FIXED VERSION (DOCX Support + Safe URI Decode)
 const fs = require('fs');
+
+// Try multiple parsing methods for PDF and DOCX
+async function parseDocument(filePath, fileExtension) {
+  try {
+    const ext = fileExtension.toLowerCase();
+    
+    if (ext === '.pdf') {
+      return await parsePDF(filePath);
+    } else if (ext === '.docx') {
+      return await parseDOCX(filePath);
+    } else {
+      return {
+        success: false,
+        text: '',
+        method: 'unsupported',
+        error: `Unsupported file type: ${ext}`
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      text: '',
+      method: 'error',
+      error: error.message
+    };
+  }
+}
+
+// ✅ NEW: Parse DOCX files using mammoth
+async function parseDOCX(filePath) {
+  try {
+    const mammoth = require('mammoth');
+    const result = await mammoth.extractRawText({ path: filePath });
+    
+    if (result && result.value) {
+      console.log('✅ DOCX parsed successfully with mammoth');
+      return {
+        success: true,
+        text: result.value,
+        method: 'mammoth'
+      };
+    }
+    
+    throw new Error('No text extracted from DOCX');
+    
+  } catch (error) {
+    console.log('📄 mammoth DOCX parsing failed:', error.message);
+    return {
+      success: false,
+      text: '',
+      method: 'mammoth',
+      error: error.message
+    };
+  }
+}
 
 // Try multiple PDF parsing methods
 async function parsePDF(filePath) {
@@ -137,27 +192,26 @@ async function extractEmailFromResume(filePath, fileExtension) {
       return { success: false, error: 'File not found' };
     }
 
-    if (fileExtension.toLowerCase() === '.pdf') {
-      const result = await parsePDF(filePath);
-      console.log(`📄 [Email Extraction] Used method: ${result.method}`);
-      
-      if (!result.success) {
-        return { success: false, error: result.error || 'PDF parsing failed' };
-      }
-      
-      const text = result.text || '';
-      console.log(`🔍 [Email Extraction] Text length: ${text.length} chars`);
-      
-      // Email regex pattern
-      const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
-      const emails = text.match(emailRegex);
-      
-      console.log(`🔍 [Email Extraction] Found emails:`, emails);
-      
-      if (emails && emails.length > 0) {
-        console.log(`✅ [Email Extraction] Email found: ${emails[0]}`);
-        return { success: true, email: emails[0] };
-      }
+    // Use parseDocument for both PDF and DOCX
+    const result = await parseDocument(filePath, fileExtension);
+    console.log(`📄 [Email Extraction] Used method: ${result.method}`);
+    
+    if (!result.success) {
+      return { success: false, error: result.error || 'Document parsing failed' };
+    }
+    
+    const text = result.text || '';
+    console.log(`🔍 [Email Extraction] Text length: ${text.length} chars`);
+    
+    // Email regex pattern
+    const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+    const emails = text.match(emailRegex);
+    
+    console.log(`🔍 [Email Extraction] Found emails:`, emails);
+    
+    if (emails && emails.length > 0) {
+      console.log(`✅ [Email Extraction] Email found: ${emails[0]}`);
+      return { success: true, email: emails[0] };
     }
     
     return { success: false, error: 'No email found' };
@@ -176,44 +230,41 @@ async function extractExperienceYears(filePath, fileExtension) {
       return { success: false, error: 'File not found', years: 0 };
     }
 
-    if (fileExtension.toLowerCase() === '.pdf') {
-      const result = await parsePDF(filePath);
-      
-      if (!result.success) {
-        return { success: false, error: result.error, years: 0 };
-      }
-      
-      const text = result.text || '';
-      
-      // Enhanced experience extraction
-      const experiencePatterns = [
-        /(\d+)\s*\+?\s*years?[\s\w]*experience/gi,
-        /experience.*?(\d+)\s*\+?\s*years?/gi,
-        /(\d+)\s*\+?\s*years?.*?(?:experience|work|industry)/gi
-      ];
-      
-      let maxYears = 0;
-      
-      for (const pattern of experiencePatterns) {
-        const matches = text.match(pattern);
-        if (matches) {
-          matches.forEach(match => {
-            const yearMatch = match.match(/\d+/);
-            if (yearMatch) {
-              const years = parseInt(yearMatch[0]);
-              if (years > maxYears && years < 50) { // Sanity check
-                maxYears = years;
-              }
-            }
-          });
-        }
-      }
-      
-      console.log(`✅ [Experience Extraction] Found: ${maxYears} years`);
-      return { success: true, years: maxYears || 0 };
+    // Use parseDocument for both PDF and DOCX
+    const result = await parseDocument(filePath, fileExtension);
+    
+    if (!result.success) {
+      return { success: false, error: result.error, years: 0 };
     }
     
-    return { success: false, error: 'Unsupported file type', years: 0 };
+    const text = result.text || '';
+    
+    // Enhanced experience extraction
+    const experiencePatterns = [
+      /(\d+)\s*\+?\s*years?[\s\w]*experience/gi,
+      /experience.*?(\d+)\s*\+?\s*years?/gi,
+      /(\d+)\s*\+?\s*years?.*?(?:experience|work|industry)/gi
+    ];
+    
+    let maxYears = 0;
+    
+    for (const pattern of experiencePatterns) {
+      const matches = text.match(pattern);
+      if (matches) {
+        matches.forEach(match => {
+          const yearMatch = match.match(/\d+/);
+          if (yearMatch) {
+            const years = parseInt(yearMatch[0]);
+            if (years > maxYears && years < 50) { // Sanity check
+              maxYears = years;
+            }
+          }
+        });
+      }
+    }
+    
+    console.log(`✅ [Experience Extraction] Found: ${maxYears} years`);
+    return { success: true, years: maxYears || 0 };
     
   } catch (error) {
     console.error('❌ [Experience Extraction] Error:', error.message);
@@ -225,5 +276,7 @@ module.exports = {
   extractEmailFromResume,
   extractExperienceYears,
   parsePDF,
+  parseDocument,
+  parseDOCX,
   safeDecodeURI
 };

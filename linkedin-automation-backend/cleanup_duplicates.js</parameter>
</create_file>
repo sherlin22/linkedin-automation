@@ -1,0 +1,51 @@
+// Script to remove duplicate entries from state_draft_followups.json
+const fs = require('fs');
+
+const stateFile = 'state_draft_followups.json';
+
+// Read the state file
+const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+
+console.log('📊 Before cleanup:');
+console.log(`   Processed: ${state.processed.length}`);
+console.log(`   Sent followups: ${state.sentFollowups.length}`);
+
+// Remove duplicates from processed (case-insensitive)
+const uniqueProcessed = [];
+const processedSeen = new Set();
+state.processed.forEach(name => {
+  const lower = name.toLowerCase();
+  if (!processedSeen.has(lower)) {
+    processedSeen.add(lower);
+    uniqueProcessed.push(name);
+  }
+});
+
+// Remove duplicates from sentFollowups (case-insensitive)
+const uniqueSentFollowups = [];
+const sentSeen = new Set();
+state.sentFollowups.forEach(item => {
+  const lower = item.name.toLowerCase();
+  if (!sentSeen.has(lower)) {
+    sentSeen.add(lower);
+    uniqueSentFollowups.push(item);
+  }
+});
+
+// Update the state
+state.processed = uniqueProcessed;
+state.sentFollowups = uniqueSentFollowups;
+
+// Write back to file
+fs.writeFileSync(stateFile, JSON.stringify(state, null, 2), 'utf8');
+
+console.log('\n✅ After cleanup:');
+console.log(`   Processed: ${state.processed.length}`);
+console.log(`   Sent followups: ${state.sentFollowups.length}`);
+
+console.log('\n📋 Unique sent followups:');
+uniqueSentFollowups.forEach((s, i) => {
+  console.log(`   ${i+1}. ${s.name}`);
+});
+
+console.log('\n✨ State file cleaned up!');

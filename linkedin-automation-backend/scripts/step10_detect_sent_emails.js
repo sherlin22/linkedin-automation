@@ -1,0 +1,386 @@
+// scripts/step10_detect_sent_emails.js
+// ✅ Detects which Gmail drafts were sent using TWO methods:
+//   Method 1: Check if draftId no longer exists (404 = draft was deleted after send)
+//   Method 2: Fallback — search Gmail Sent folder by candidate name (handles Gmail web quirk
+//             where draft isn't always deleted immediately after sending)
+
+const fs = require('fs');
+const path = require('path');
+const { google } = require('googleapis');
+const minimist = require('minimist');
+
+require('dotenv').config();
+
+const args = minimist(process.argv.slice(2), {
+  string: ['mapping'],
+  boolean: ['confirm', 'force'],
+  default: {
+    mapping: 'draft_linkedin_mapping.json',
+    confirm: false,
+    force: false
+  }
+});
+
+// ─── How far back (in hours) to search the Sent folder ───────────────────────
+const SENT_SEARCH_HOURS_BACK = 72;
+
+/**
+ * Load OAuth credentials and initialize Gmail API
+ */
+async function initializeGmail() {
+  try {
+    const tokenPath = path.join(process.cwd(), 'google_token.json');
+    if (!fs.existsSync(tokenPath)) {
+      console.log('❌ google_token.json not found');
+      return null;
+    }
+
+    const tokenData = JSON.parse(fs.readFileSync(tokenPath, 'utf8'));
+
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/oauth2callback'
+    );
+
+    oauth2Client.setCredentials(tokenData);
+
+    // Auto-save refreshed tokens
+    oauth2Client.on('tokens', (tokens) => {
+      tokenData.access_token = tokens.access_token;
+      if (tokens.refresh_token) tokenData.refresh_token = tokens.refresh_token;
+      if (tokens.expiry_date) tokenData.expiry_date = tokens.expiry_date;
+      try { fs.writeFileSync(tokenPath, JSON.stringify(tokenData, null, 2)); } catch (_) {}
+    });
+
+    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+    console.log('✅ Gmail API initialized');
+    return gmail;
+  } catch (error) {
+    console.log('❌ Failed to initialize Gmail:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Load the draft-LinkedIn mapping file
+ */
+function loadMapping() {
+  const mappingPath = path.join(process.cwd(), args.mapping);
+
+  if (!fs.existsSync(mappingPath)) {
+    console.log('⚠️  Mapping file not found, creating new one');
+    return [];
+  }
+
+  try {
+    const data = JSON.parse(fs.readFileSync(mappingPath, 'utf8'));
+    if (!Array.isArray(data)) {
+      console.log('⚠️  Invalid mapping file format, starting fresh');
+      return [];
+    }
+    return data;
+  } catch (error) {
+    console.log('❌ Error reading mapping file:', error.message);
+    return [];
+  }
+}
+
+/**
+ * Save the updated mapping file
+ */
+function saveMapping(mappingData) {
+  const mappingPath = path.join(process.cwd(), args.mapping);
+  try {
+    fs.writeFileSync(mappingPath, JSON.stringify(mappingData, null, 2), 'utf8');
+    return true;
+  } catch (error) {
+    console.log('❌ Error saving mapping file:', error.message);
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// METHOD 1: Check if draft ID still exists
+// Returns: { exists: true | false | null, error? }
+// ─────────────────────────────────────────────────────────────────────────────
+async function checkDraftExists(gmail, draftId) {
+  try {
+    await gmail.users.drafts.get({ userId: 'me', id: draftId });
+    return { exists: true };
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      return { exists: false };             // Draft deleted = was sent
+    }
+    return { exists: null, error: error.message };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// METHOD 2: Search Gmail Sent folder for a matching email
+//
+// Strategy cascade (stops at first match):
+//   2a. Subject contains candidate name  →  in:sent subject:"Name"
+//   2b. To field contains candidate name →  in:sent to:"Name"
+//   2c. First-name-only to search        →  in:sent to:"FirstName"
+//   2d. Scan recent sent body for "Dear FirstName"
+//
+// Returns: { wasSent: boolean, messageId?, subject?, sentDate?, detectedBy? }
+// ─────────────────────────────────────────────────────────────────────────────
+async function checkSentFolder(gmail, candidateName, hoursBack = SENT_SEARCH_HOURS_BACK) {
+  try {
+    const cleanName = (candidateName || '').trim();
+    if (cleanName.length < 2) return { wasSent: false };
+
+    const nameParts = cleanName.split(' ').filter(p => p.length > 1);
+    const firstName = nameParts[0] || '';
+    const lastName  = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+
+    // Date boundary for search
+    const pastDate = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
+    const afterDate = pastDate.toISOString().split('T')[0];   // YYYY-MM-DD
+
+    // ── 2a / 2b / 2c: header-based queries (fast) ────────────────────────────
+    const headerQueries = [
+      `in:sent from:me subject:"${cleanName}" after:${afterDate}`,
+      `in:sent from:me to:"${cleanName}" after:${afterDate}`,
+      ...(lastName ? [`in:sent from:me subject:"${firstName} ${lastName}" after:${afterDate}`] : []),
+      `in:sent from:me to:${firstName} after:${afterDate}`,
+    ];
+
+    for (const query of headerQueries) {
+      const response = await gmail.users.messages.list({
+        userId: 'me',
+        q: query,
+        maxResults: 5
+      });
+
+      if (response.data.messages && response.data.messages.length > 0) {
+        const msg = response.data.messages[0];
+        const full = await gmail.users.messages.get({
+          userId: 'me',
+          id: msg.id,
+          format: 'metadata',
+          metadataHeaders: ['Date', 'Subject', 'To']
+        });
+        const headers = full.data.payload.headers;
+        const subject = headers.find(h => h.name === 'Subject')?.value || '(no subject)';
+        const to      = headers.find(h => h.name === 'To')?.value || '';
+
+        console.log(`   ✅ SENT FOLDER MATCH (header query)`);
+        console.log(`      Query:   ${query}`);
+        console.log(`      Subject: ${subject}`);
+        console.log(`      To:      ${to}`);
+
+        return {
+          wasSent: true,
+          messageId: msg.id,
+          subject,
+          sentDate: headers.find(h => h.name === 'Date')?.value,
+          to,
+          detectedBy: 'sent_folder_header'
+        };
+      }
+
+      await new Promise(r => setTimeout(r, 100)); // gentle rate-limit pause
+    }
+
+    // ── 2d: body scan — look for "Dear FirstName" in recent sent emails ───────
+    if (firstName.length >= 2) {
+      console.log(`   🔍 Scanning recent sent email bodies for "Dear ${firstName}"...`);
+
+      const bodySearchResponse = await gmail.users.messages.list({
+        userId: 'me',
+        q: `in:sent from:me after:${afterDate}`,
+        maxResults: 40       // scan last 40 sent emails
+      });
+
+      const sentMessages = bodySearchResponse.data.messages || [];
+
+      for (const sentMsg of sentMessages) {
+        try {
+          const full = await gmail.users.messages.get({
+            userId: 'me',
+            id: sentMsg.id,
+            format: 'full'
+          });
+
+          // Decode body
+          let body = '';
+          const payload = full.data.payload;
+          if (payload.parts) {
+            for (const part of payload.parts) {
+              if (part.mimeType === 'text/plain' && part.body && part.body.data) {
+                body = Buffer.from(part.body.data, 'base64').toString('utf-8');
+                break;
+              }
+            }
+          } else if (payload.body && payload.body.data) {
+            body = Buffer.from(payload.body.data, 'base64').toString('utf-8');
+          }
+
+          const bodyLower = body.toLowerCase();
+          const firstNameLower = firstName.toLowerCase();
+
+          // Match "Dear Salu" or "dear salu balan" etc.
+          if (
+            bodyLower.includes(`dear ${firstNameLower}`) ||
+            (lastName && bodyLower.includes(`dear ${firstNameLower} ${lastName.toLowerCase()}`))
+          ) {
+            const headers = payload.headers || [];
+            const subject = headers.find(h => h.name === 'Subject')?.value || '(no subject)';
+            const to      = headers.find(h => h.name === 'To')?.value || '';
+
+            console.log(`   ✅ SENT FOLDER MATCH (body scan — "Dear ${firstName}")`);
+            console.log(`      Subject: ${subject}`);
+            console.log(`      To:      ${to}`);
+
+            return {
+              wasSent: true,
+              messageId: sentMsg.id,
+              subject,
+              sentDate: headers.find(h => h.name === 'Date')?.value,
+              to,
+              detectedBy: 'sent_folder_body_scan'
+            };
+          }
+
+          await new Promise(r => setTimeout(r, 80));
+        } catch (_) {
+          // skip unreadable messages
+        }
+      }
+    }
+
+    return { wasSent: false };
+  } catch (error) {
+    console.log(`   ⚠️  Sent-folder check error: ${error.message}`);
+    return { wasSent: false };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN
+// ─────────────────────────────────────────────────────────────────────────────
+async function detectSentEmails() {
+  console.log('\n📧 STEP 10: Detect Sent Emails');
+  console.log('='.repeat(50));
+  console.log('Checking which Gmail drafts were sent...');
+  console.log('Detection methods: [1] Draft-ID check  [2] Sent-folder search\n');
+
+  const gmail = await initializeGmail();
+  if (!gmail) {
+    console.log('❌ Cannot proceed without Gmail API');
+    process.exit(1);
+  }
+
+  const mappingData = loadMapping();
+  if (mappingData.length === 0) {
+    console.log('📭 No records in mapping file');
+    process.exit(0);
+  }
+
+  const pendingRecords = mappingData.filter(r => r.status === 'draft_pending');
+  console.log(`📊 Total records:   ${mappingData.length}`);
+  console.log(`📋 Pending drafts:  ${pendingRecords.length}\n`);
+
+  if (pendingRecords.length === 0) {
+    console.log('✅ No pending drafts to check');
+    process.exit(0);
+  }
+
+  let detectedSent = 0;
+  let stillPending  = 0;
+  let errors        = 0;
+  const newlySentRecords = [];
+
+  for (const record of pendingRecords) {
+    console.log(`🔍 Checking: ${record.linkedinName}`);
+    console.log(`   Draft ID: ${record.draftId}`);
+
+    // ── Method 1: draft-ID check ──────────────────────────────────────────────
+    const draftResult = await checkDraftExists(gmail, record.draftId);
+
+    if (draftResult.exists === false) {
+      // Draft deleted → was sent
+      console.log(`   ✅ SENT (Method 1 — draft deleted): ${record.linkedinName}`);
+      record.status          = 'email_sent';
+      record.sentDetectedAt  = new Date().toISOString();
+      record.sentDetectedBy  = 'draft_deleted';
+      detectedSent++;
+      newlySentRecords.push(record);
+
+    } else if (draftResult.exists === true) {
+      // Draft still exists in Gmail → try Method 2 before giving up
+      console.log(`   ⏳ Draft still exists — trying Sent folder fallback...`);
+
+      const sentResult = await checkSentFolder(gmail, record.linkedinName);
+
+      if (sentResult.wasSent) {
+        console.log(`   ✅ SENT (Method 2 — found in Sent folder): ${record.linkedinName}`);
+        record.status          = 'email_sent';
+        record.sentDetectedAt  = new Date().toISOString();
+        record.sentDetectedBy  = sentResult.detectedBy;
+        record.sentMessageId   = sentResult.messageId;
+        record.sentSubject     = sentResult.subject;
+        record.sentTo          = sentResult.to;
+        detectedSent++;
+        newlySentRecords.push(record);
+      } else {
+        console.log(`   ⏳ Not sent yet: ${record.linkedinName}`);
+        stillPending++;
+      }
+
+    } else {
+      // API error on draft check
+      console.log(`   ⚠️  Draft check error: ${draftResult.error} — trying Sent folder anyway...`);
+
+      const sentResult = await checkSentFolder(gmail, record.linkedinName);
+      if (sentResult.wasSent) {
+        console.log(`   ✅ SENT (Method 2 — after draft-check error): ${record.linkedinName}`);
+        record.status          = 'email_sent';
+        record.sentDetectedAt  = new Date().toISOString();
+        record.sentDetectedBy  = sentResult.detectedBy;
+        record.sentMessageId   = sentResult.messageId;
+        detectedSent++;
+        newlySentRecords.push(record);
+      } else {
+        errors++;
+      }
+    }
+
+    console.log(''); // blank line between candidates
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  // Save if anything changed
+  if (detectedSent > 0) {
+    saveMapping(mappingData);
+    console.log(`💾 Saved updated mapping file`);
+  }
+
+  console.log('\n' + '='.repeat(50));
+  console.log('📊 STEP 10 COMPLETE');
+  console.log('='.repeat(50));
+  console.log(`   • Total checked:            ${pendingRecords.length}`);
+  console.log(`   • Newly detected as sent:   ${detectedSent}`);
+  console.log(`   • Still pending:            ${stillPending}`);
+  console.log(`   • Errors:                   ${errors}`);
+
+  if (detectedSent > 0) {
+    console.log(`\n✅ Ready for Step 11: ${detectedSent} candidate(s) to notify on LinkedIn`);
+    newlySentRecords.forEach(r => {
+      console.log(`   → ${r.linkedinName}  [${r.sentDetectedBy}]`);
+    });
+  }
+
+  return newlySentRecords;
+}
+
+// Run if called directly
+detectSentEmails().catch(error => {
+  console.error('❌ Fatal error:', error.message);
+  process.exit(1);
+});
+
+module.exports = { detectSentEmails };

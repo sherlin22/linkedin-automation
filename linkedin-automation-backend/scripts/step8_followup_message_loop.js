@@ -534,12 +534,38 @@ async function verifyMessageSent(page, expectedMessage) {
   }
 
   const page = await context.newPage();
-  page.setDefaultTimeout(30000);
+  page.setDefaultTimeout(60000);
+
+  // Declare newFollowups at outer scope so it's accessible in catch block
+  let newFollowups = 0;
+
+  // Helper function for navigation with retries
+  async function navigateWithRetry(url, options = {}, maxRetries = 3) {
+    let lastError;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        log(`\n🔗 Attempt ${attempt}/${maxRetries}: Opening LinkedIn Messaging...`);
+        await page.goto(url, { 
+          waitUntil: 'domcontentloaded',
+          timeout: 60000,
+          ...options 
+        });
+        await page.waitForTimeout(5000);
+        return true;
+      } catch (e) {
+        lastError = e;
+        log(`⚠️  Navigation attempt ${attempt} failed: ${e.message}`);
+        if (attempt < maxRetries) {
+          log(`   Retrying in ${attempt * 10} seconds...`);
+          await page.waitForTimeout(attempt * 10000);
+        }
+      }
+    }
+    throw lastError;
+  }
 
   try {
-    log("\n🔗 Opening LinkedIn Messaging...");
-    await page.goto("https://www.linkedin.com/messaging/", { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(4000);
+    await navigateWithRetry("https://www.linkedin.com/messaging/");
 
     if (/\/login|checkpoint/.test(page.url())) {
       log("❌ Not logged in. Please sign in and retry.");
@@ -549,8 +575,6 @@ async function verifyMessageSent(page, expectedMessage) {
 
     const threadsSelector = 'li.msg-conversation-listitem, li[class*="msg-conversation"]';
     await page.waitForSelector(threadsSelector, { timeout: 10000 });
-
-    let newFollowups = 0;
 
     const conversationList = await page.$('.msg-conversations-container__conversations-list, [class*="conversations-list"]');
     if (conversationList) {

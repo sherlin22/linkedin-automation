@@ -1,4 +1,4 @@
-// scripts/helpers/candidate-workflow-logger.js - FIXED WITH TIME COLUMN
+// scripts/helpers/candidate-workflow-logger.js - FULLY FIXED
 const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
@@ -78,24 +78,27 @@ class CandidateWorkflowLogger {
         throw new Error('Logger not initialized');
       }
 
-      // ✅ UPDATED HEADERS WITH TIME COLUMN
       const headers = [
-        'Date',                    // A
-        'Time',                    // B ← NEW
-        'Proposal Sent To',        // C
-        'Proposal Status',         // D
-        'Follow-up To',            // E
-        'Follow-up Status',        // F
-        'Resume Downloaded',       // G
-        'Resume Status',           // H
-        'Email ID',                // I
-        'Mail Drafted',            // J
-        'Draft Status',            // K
-        'LinkedIn Thread ID',      // L
-        'Notes'                    // M
+        'Date',                           // A
+        'Time',                           // B
+        'Proposal Sent To',               // C
+        'Proposal Status',                // D
+        'Follow-up To',                   // E
+        'Follow-up Status',               // F
+        'Resume Downloaded',              // G
+        'Resume Status',                  // H
+        'Email ID',                       // I
+        'Mail Drafted',                   // J
+        'Draft Status',                   // K
+        'Draft Type',                     // L
+        'Draft Follow-up Sent',           // M
+        'Draft Follow-up Status',         // N
+        'Draft Follow-up Date',           // O
+        'LinkedIn Thread ID',             // P
+        'Notes'                           // Q
       ];
 
-      const range = `'${this.sheetName}'!A1:M1`;
+      const range = `'${this.sheetName}'!A1:Q1`;
 
       const result = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.sheetId,
@@ -105,10 +108,12 @@ class CandidateWorkflowLogger {
       const existingHeaders = result.data.values?.[0] || [];
 
       if (existingHeaders.length === 0 || existingHeaders[0] !== 'Date') {
-        console.log('📝 Setting up headers with TIME column...');
+        console.log('📝 Setting up headers...');
+        
+        // ✅ CRITICAL: Clear ONLY columns A:Q to avoid issues with hidden data
         await this.sheets.spreadsheets.values.clear({
           spreadsheetId: this.sheetId,
-          range: `'${this.sheetName}'!A:M`
+          range: `'${this.sheetName}'!A:Q`
         });
 
         await this.sheets.spreadsheets.values.update({
@@ -117,7 +122,7 @@ class CandidateWorkflowLogger {
           valueInputOption: 'RAW',
           requestBody: { values: [headers] }
         });
-        console.log('✅ Headers created with TIME column');
+        console.log('✅ Headers created');
       } else {
         console.log('✅ Headers already exist');
       }
@@ -144,35 +149,33 @@ class CandidateWorkflowLogger {
 
       // Check cache first
       if (this.candidateCache[cleanName]) {
-        console.log(`   ✅ Using cached row for ${cleanName}: ${this.candidateCache[cleanName]}`);
         return this.candidateCache[cleanName];
       }
 
-      // Search for existing row by reading column C (Proposal Sent To)
-      const range = `'${this.sheetName}'!C:C`;
+      // ✅ FIX: Search ONLY column C, not entire column
+      const searchRange = `'${this.sheetName}'!C:C`;
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.sheetId,
-        range: range
+        range: searchRange
       });
 
       const rows = response.data.values || [];
-      let rowIndex = -1;
-
-      // Skip header (row 0), check from row 1 onwards
+      
+      // Check if candidate already exists (row 1 is headers, start from row 2 = index 1)
       for (let i = 1; i < rows.length; i++) {
         if (rows[i] && rows[i][0] && rows[i][0].trim() === cleanName) {
-          rowIndex = i + 1; // Google Sheets is 1-indexed
+          const rowIndex = i + 1; // Google Sheets is 1-indexed
           this.candidateCache[cleanName] = rowIndex;
           console.log(`   ✅ Found existing row for "${cleanName}": ${rowIndex}`);
           return rowIndex;
         }
       }
 
-      // Create new row with DATE and TIME
+      // ✅ CREATE NEW ROW - Use explicit range A2:Q to control width
       console.log(`   📝 Creating new row for "${cleanName}"...`);
       
       const now = new Date();
-      const today = now.toLocaleDateString('en-US', {
+      const today = now.toLocaleDateString('en-GB', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
@@ -186,25 +189,30 @@ class CandidateWorkflowLogger {
       });
 
       const newRow = [
-        today,            // A - Date
-        time,             // B - Time ← INCLUDES TIME NOW
-        cleanName,        // C - Proposal Sent To
-        '',               // D - Proposal Status
-        '',               // E - Follow-up To
-        '',               // F - Follow-up Status
-        '',               // G - Resume Downloaded
-        '',               // H - Resume Status
-        '',               // I - Email ID
-        '',               // J - Mail Drafted
-        '',               // K - Draft Status
-        '',               // L - LinkedIn Thread ID
-        ''                // M - Notes
+        today,              // A
+        time,               // B
+        cleanName,          // C
+        '',                 // D
+        '',                 // E
+        '',                 // F
+        '',                 // G
+        '',                 // H
+        '',                 // I
+        '',                 // J
+        '',                 // K
+        '',                 // L
+        '',                 // M
+        '',                 // N
+        '',                 // O
+        '',                 // P
+        ''                  // Q
       ];
 
-      const appendRange = `'${this.sheetName}'!A2:M`;
+      // ✅ CRITICAL FIX: Use A:A (single column) to append safely
+      // This prevents Google Sheets from expanding the range unexpectedly
       const appendResponse = await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.sheetId,
-        range: appendRange,
+        range: `'${this.sheetName}'!A:A`, // Single column - safer for appending
         valueInputOption: 'RAW',
         insertDataOption: 'INSERT_ROWS',
         requestBody: { values: [newRow] }
@@ -213,13 +221,13 @@ class CandidateWorkflowLogger {
       const updatedRange = appendResponse.data.updates?.updatedRange;
       
       if (!updatedRange) {
-        console.error('❌ No updatedRange in response:', appendResponse.data);
+        console.error('❌ No updatedRange in response');
         return null;
       }
 
       console.log(`   📝 Updated range: ${updatedRange}`);
 
-      // Parse range like: 'Sheet1'!A2:M2
+      // ✅ FIX: Extract row number from range like 'Sheet1'!A2:A2
       const rangeMatch = updatedRange.match(/!A(\d+):/);
       
       if (!rangeMatch || !rangeMatch[1]) {
@@ -227,7 +235,7 @@ class CandidateWorkflowLogger {
         return null;
       }
 
-      rowIndex = parseInt(rangeMatch[1], 10);
+      const rowIndex = parseInt(rangeMatch[1], 10);
 
       if (isNaN(rowIndex)) {
         console.error('❌ Invalid row index:', rangeMatch[1]);
@@ -251,7 +259,7 @@ class CandidateWorkflowLogger {
       const rowIndex = await this.findOrCreateCandidateRow(candidateName);
       if (!rowIndex) throw new Error('Could not find/create row');
 
-      // Update columns C:D (Proposal Sent To + Proposal Status)
+      // Update C:D (Proposal Sent To + Proposal Status)
       const range = `'${this.sheetName}'!C${rowIndex}:D${rowIndex}`;
 
       await this.sheets.spreadsheets.values.update({
@@ -263,11 +271,11 @@ class CandidateWorkflowLogger {
         }
       });
 
-      // Update thread ID in column L
+      // Update thread ID in column P
       if (threadId) {
         await this.sheets.spreadsheets.values.update({
           spreadsheetId: this.sheetId,
-          range: `'${this.sheetName}'!L${rowIndex}`,
+          range: `'${this.sheetName}'!P${rowIndex}`,
           valueInputOption: 'RAW',
           requestBody: { values: [[threadId]] }
         });
@@ -288,7 +296,6 @@ class CandidateWorkflowLogger {
       const rowIndex = await this.findOrCreateCandidateRow(candidateName);
       if (!rowIndex) throw new Error('Could not find/create row');
 
-      // Update columns E:F (Follow-up To + Follow-up Status)
       const range = `'${this.sheetName}'!E${rowIndex}:F${rowIndex}`;
 
       await this.sheets.spreadsheets.values.update({
@@ -318,7 +325,6 @@ class CandidateWorkflowLogger {
       const isReadable = resumeStatus && resumeStatus.includes('Readable');
       const mailDrafted = isReadable ? 'Yes' : 'No';
 
-      // Update columns G:J (Resume Downloaded, Resume Status, Email ID, Mail Drafted)
       const range = `'${this.sheetName}'!G${rowIndex}:J${rowIndex}`;
 
       await this.sheets.spreadsheets.values.update({
@@ -330,7 +336,7 @@ class CandidateWorkflowLogger {
         }
       });
 
-      console.log(`✅ Logged Resume Download: ${candidateName} (${resumeStatus}) (Row ${rowIndex})`);
+      console.log(`✅ Logged Resume Download: ${candidateName} (Row ${rowIndex})`);
       return { success: true, rowIndex, mailDrafted };
     } catch (error) {
       console.error('❌ Resume download log failed:', error.message);
@@ -345,7 +351,6 @@ class CandidateWorkflowLogger {
       const rowIndex = await this.findOrCreateCandidateRow(candidateName);
       if (!rowIndex) throw new Error('Could not find/create row');
 
-      // Update column K (Draft Status)
       await this.sheets.spreadsheets.values.update({
         spreadsheetId: this.sheetId,
         range: `'${this.sheetName}'!K${rowIndex}`,
@@ -361,6 +366,49 @@ class CandidateWorkflowLogger {
     }
   }
 
+  async logDraftFollowup(candidateName, draftType = 'Auto', status = 'Success') {
+    try {
+      if (!this.isInitialized) throw new Error('Logger not initialized');
+
+      const rowIndex = await this.findOrCreateCandidateRow(candidateName);
+      if (!rowIndex) throw new Error('Could not find/create row');
+
+      const now = new Date();
+      const followupDate = now.toLocaleDateString('en-GB', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+
+      const followupTime = now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+
+      const followupDateTime = `${followupDate} ${followupTime}`;
+
+      // Update L:O (Draft Type, Follow-up Sent, Status, Date)
+      const range = `'${this.sheetName}'!L${rowIndex}:O${rowIndex}`;
+
+      await this.sheets.spreadsheets.values.update({
+        spreadsheetId: this.sheetId,
+        range: range,
+        valueInputOption: 'RAW',
+        requestBody: {
+          values: [[draftType, 'Yes', status, followupDateTime]]
+        }
+      });
+
+      console.log(`✅ Logged Draft Follow-up: ${candidateName} (Row ${rowIndex})`);
+      return { success: true, rowIndex };
+    } catch (error) {
+      console.error('❌ Draft follow-up log failed:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
   async addNote(candidateName, note) {
     try {
       if (!this.isInitialized) throw new Error('Logger not initialized');
@@ -368,8 +416,7 @@ class CandidateWorkflowLogger {
       const rowIndex = await this.findOrCreateCandidateRow(candidateName);
       if (!rowIndex) throw new Error('Could not find/create row');
 
-      // Get existing notes from column M
-      const range = `'${this.sheetName}'!M${rowIndex}`;
+      const range = `'${this.sheetName}'!Q${rowIndex}`;
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.sheetId,
         range: range
@@ -404,7 +451,7 @@ class CandidateWorkflowLogger {
         range: range
       });
 
-      return (response.data.values || []).length - 1; // Subtract header
+      return (response.data.values || []).length - 1;
     } catch (error) {
       console.error('❌ Failed to get row count:', error.message);
       return 0;
